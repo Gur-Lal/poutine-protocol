@@ -1,5 +1,7 @@
 # Soen 343 Project
 
+A university project for a bike sharing system.
+
 ## Group Members
 
 - Darcy McCoy 40234556
@@ -10,20 +12,24 @@
 
 ## Getting Started
 
-To run the project:
+To run the development version locally:
 
 ```sh
-mvn spring-boot:run
+npm run dev
 ```
 
-To compile, test, and package the project:
+This will be hosted at [http://localhost:3000](http://localhost:3000).
+
+### Production Build
+
+To create a production build:
 
 ```sh
-mvn package
+npm run build
 ```
 
-To only run the tests:
+And to run that production build:
 
 ```sh
-mvn test
+npm run start
 ```
