@@ -3,7 +3,7 @@ import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
-    apiKey: process.env.NEXT_FIREBASE_API_KEY,
+    apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
     authDomain: "pedal-to-the-mtl.firebaseapp.com",
     projectId: "pedal-to-the-mtl",
     storageBucket: "pedal-to-the-mtl.firebasestorage.app",
