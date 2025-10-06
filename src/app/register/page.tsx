@@ -10,13 +10,15 @@ import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 export default function RegisterPage() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
+    const [username, setUsername] = useState("");
+
     const [confirm, setConfirm] = useState("");
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
 
     const [fname, setFname] = useState("");
     const [lname, setLname] = useState("");
-    const [age, setAge] = useState<number | "">("");
+    const [address, setAddress] = useState("");
 
     const handleRegister = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -41,12 +43,13 @@ export default function RegisterPage() {
                 email: cred.user.email,
                 firstName: fname,
                 lastName: lname,
-                age: age === "" ? null : age,
+                username: username,
+                address: address,
                 createdAt: serverTimestamp(),
             });
 
             alert("Registration successful!");
-            // e.g. router.push('/login')
+
         } catch (err: any) {
             console.error(err);
             setError(err?.message || "Failed to register.");
@@ -70,15 +73,17 @@ export default function RegisterPage() {
             </div>
 
             <div>
-                <label>Age</label>
+                <label>Username</label>
+                <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} required />
+            </div>
+
+            <div>
+                <label>Address</label>
                 <input
-                    type="number"
-                    value={age}
-                    onChange={(e) => {
-                        const n = e.currentTarget.valueAsNumber;
-                        setAge(Number.isNaN(n) ? "" : n);
-                    }}
-                    required
+                    type="text"
+                    placeholder="123 Main St, Springfield"
+                    value={address}
+                    onChange={(e) => setAddress(e.target.value)}
                 />
             </div>
 
