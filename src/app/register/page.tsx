@@ -6,6 +6,7 @@ import Link from "next/link";
 import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
 import { auth, db } from "../../data/firebase";
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
+import "./register.css";
 
 export default function RegisterPage() {
     const [email, setEmail] = useState("");
@@ -59,72 +60,75 @@ export default function RegisterPage() {
     };
 
     return (
-        <form onSubmit={handleRegister}>
-            <h3>Create Account</h3>
+        <div className="register-container">
+            <form className="register-box" onSubmit={handleRegister}>
+                <h3>Create Account</h3>
 
-            <div>
-                <label>First Name</label>
-                <input type="text" value={fname} onChange={(e) => setFname(e.target.value)} required />
-            </div>
+                <div>
+                    <label>First Name</label>
+                    <input type="text" value={fname} onChange={(e) => setFname(e.target.value)} required />
+                </div>
 
-            <div>
-                <label>Last Name</label>
-                <input type="text" value={lname} onChange={(e) => setLname(e.target.value)} required />
-            </div>
+                <div>
+                    <label>Last Name</label>
+                    <input type="text" value={lname} onChange={(e) => setLname(e.target.value)} required />
+                </div>
 
-            <div>
-                <label>Username</label>
-                <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} required />
-            </div>
+                <div>
+                    <label>Username</label>
+                    <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} required />
+                </div>
 
-            <div>
-                <label>Address</label>
-                <input
-                    type="text"
-                    placeholder="123 Main St, Springfield"
-                    value={address}
-                    onChange={(e) => setAddress(e.target.value)}
-                />
-            </div>
+                <div>
+                    <label>Address</label>
+                    <input
+                        type="text"
+                        placeholder="123 Main St, Montreal, Canada"
+                        value={address}
+                        onChange={(e) => setAddress(e.target.value)}
+                    />
+                </div>
 
-            <div>
-                <label>Email</label>
-                <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-            </div>
+                <div>
+                    <label>Email</label>
+                    <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+                </div>
 
-            <div>
-                <label>Password</label>
-                <input
-                    type="password"
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                />
-            </div>
+                <div>
+                    <label>Password</label>
+                    <input
+                        type="password"
+                        placeholder="••••••••"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        required
+                    />
+                </div>
 
-            <div>
-                <label>Confirm Password</label>
-                <input
-                    type="password"
-                    placeholder="Re-enter your password"
-                    value={confirm}
-                    onChange={(e) => setConfirm(e.target.value)}
-                    required
-                />
-            </div>
+                <div>
+                    <label>Confirm Password</label>
+                    <input
+                        type="password"
+                        placeholder="Re-enter your password"
+                        value={confirm}
+                        onChange={(e) => setConfirm(e.target.value)}
+                        required
+                    />
+                </div>
 
-            {error && <p style={{ color: "red" }}>{error}</p>}
+                {error && <p style={{ color: "red" }}>{error}</p>}
 
-            <div>
-                <button type="submit" disabled={loading}>
-                    {loading ? "Creating..." : "Register"}
-                </button>
-            </div>
+                <div>
+                    <button type="submit" disabled={loading}>
+                        {loading ? "Creating..." : "Register"}
+                    </button>
+                </div>
 
-            <p>
-                Already have an account? <Link href="/login">Login</Link>
-            </p>
-        </form>
+                <p>
+                    Already have an account? <Link href="/login">Login</Link>
+                </p>
+            </form>
+        </div>
+
     );
 }
