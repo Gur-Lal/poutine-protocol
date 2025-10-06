@@ -4,7 +4,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { signInWithEmailAndPassword } from "firebase/auth";
-import { auth } from "@/lib/firebase";
+import { auth } from "@/data/firebase";
 import { useRouter } from "next/navigation";
 import "./login.css";
 
