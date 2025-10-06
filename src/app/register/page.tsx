@@ -46,6 +46,7 @@ export default function RegisterPage() {
                 lastName: lname,
                 username: username,
                 address: address,
+                role: "rider",
                 createdAt: serverTimestamp(),
             });
 
