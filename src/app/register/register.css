@@ -1,0 +1,64 @@
+/* Center everything on the screen */
+.register-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background-color: #0c0c0c;
+}
+
+/* Basic white box */
+.register-box {
+    background: rgb(6, 6, 6);
+    padding: 20px;
+    border: 1px solid #f0f4f0;
+    /* simple border */
+    border-radius: 6px;
+    width: 200%;
+    max-width: 300px;
+}
+
+/* Heading */
+.register-box h3 {
+    text-align: center;
+    margin-bottom: 15px;
+}
+
+/* Labels */
+.register-box label {
+    display: block;
+    margin-bottom: 4px;
+    font-size: 14px;
+}
+
+/* Inputs */
+.register-box input {
+    width: 100%;
+    padding: 6px;
+    margin-bottom: 12px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+/* Button */
+.register-box button {
+    width: 100%;
+    padding: 9px;
+    background-color: #0f6716;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+/* Register Here Link */
+.register-box p {
+    text-align: center;
+    margin-top: 10px;
+    font-size: 13px;
+}
+
+.register-box a {
+    color: #25d7eb;
+}
