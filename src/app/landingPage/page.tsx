@@ -1,8 +1,12 @@
 "use client";
-import LoginButton from '../../UI/components/LoginButton';
-import RegisterButton from '../../UI/components/RegisterButton';
+
+import {useRouter} from 'next/navigation';
 import "./landingPage.css";
 export default function LandingPage(){
+    const router= useRouter();
+    const handleLoginOrRegister = (route:string) =>{
+        router.push(route);
+    }
     return(
         <div>
             <header className="landingHeader">
@@ -14,8 +18,12 @@ export default function LandingPage(){
                     
                 </div>
                 <div className="buttonMenu">
-                    <LoginButton/>
-                    <RegisterButton/>
+                    <div>
+                        <button className="loginButton" onClick={() => handleLoginOrRegister("/login")}> Log In </button>
+                    </div>
+                    <div>
+                        <button className="registerButton" onClick={() => handleLoginOrRegister("/register")}> Sign Up </button>
+                    </div>
                 </div>
             </header>
         </div>
