@@ -1,0 +1,30 @@
+.loginButton{
+    background-color:transparent;
+    font-family:'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
+    padding:10px;
+    border:1px solid white;
+    border-radius:15px;
+    font-size:15px;
+}
+
+.loginButton:hover{
+    cursor:pointer;
+    box-shadow:0 0 10px 5px rgba(255, 255, 255, 0.316);
+    transition:0.2s ease-in-out;
+}
+
+.registerButton{
+    border:none;
+    color:black;
+    background-color:rgb(255, 255, 255);
+    font-family:'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
+    padding:10px;
+    border-radius:15px;
+    font-size:15px;
+}
+
+.registerButton:hover{
+    cursor:pointer;
+    box-shadow:0 0 10px 5px rgba(255, 255, 255, 0.316);
+    transition:0.2s ease-in-out;
+}
