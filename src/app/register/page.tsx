@@ -79,7 +79,7 @@ export default function RegisterPage() {
                 </div>
 
                 <div>
-                    <label> Username</label>
+                    <label><span className="required-star">*</span>Username</label>
                     <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} required />
                 </div>
 
