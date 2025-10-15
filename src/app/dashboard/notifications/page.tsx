@@ -68,7 +68,7 @@ export default function NotificationsPage() {
 
   if (loading) {
     return (
-      <main className="max-w-3xl mx-auto p-6 text-center text-gray-500">
+      <main>
         Loading notifications...
       </main>
     );
@@ -76,8 +76,8 @@ export default function NotificationsPage() {
 
   if (!user) {
     return (
-      <main className="max-w-3xl mx-auto p-6 text-center">
-        <p className="text-gray-500">
+      <main>
+        <p>
           Please log in to view your notifications.
         </p>
       </main>
@@ -85,19 +85,19 @@ export default function NotificationsPage() {
   }
 
   return (
-    <main className="max-w-3xl mx-auto p-6">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-semibold flex items-center gap-2">
-          <Bell className="w-6 h-6" /> Notifications
+    <main>
+      <div>
+        <h1>
+          <Bell/> Notifications
         </h1>
       </div>
 
       {notifications.length === 0 ? (
-        <p className="text-gray-500 text-center mt-10">
+        <p>
           You have no notifications
         </p>
       ) : (
-        <div className="space-y-3">
+        <div>
           {notifications.map((notification) => (
             <NotificationCard
               key={notification.id}
@@ -112,26 +112,24 @@ export default function NotificationsPage() {
 }
 
 function NotificationCard({
-  id,
   title,
   message,
   date,
   onDismiss,
 }: Notification & { onDismiss: () => void }) {
   return (
-    <Card className="transition-all hover:shadow-md">
-      <CardContent className="p-4 flex justify-between items-start">
+    <Card>
+      <CardContent>
         <div>
-          <h2 className="font-medium">{title}</h2>
-          <p className="text-sm text-gray-600">{message}</p>
-          <p className="text-xs text-gray-400 mt-1">{formatDate(date)}</p>
+          <h2>{title}</h2>
+          <p>{message}</p>
+          <p>{formatDate(date)}</p>
         </div>
         <button
           onClick={onDismiss}
-          className="text-gray-400 hover:text-gray-600 transition"
           title="Delete notification"
         >
-          <X className="w-4 h-4" />
+          <X/>
         </button>
       </CardContent>
     </Card>

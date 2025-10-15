@@ -1,13 +1,13 @@
 import * as React from "react";
 
-export function Card({ className = "", children }: { className?: string; children: React.ReactNode }) {
+export function Card({ children }: { children: React.ReactNode }) {
   return (
-    <div className={`rounded-2xl border border-gray-200 bg-white shadow-sm ${className}`}>
+    <div>
       {children}
     </div>
   );
 }
 
-export function CardContent({ className = "", children }: { className?: string; children: React.ReactNode }) {
-  return <div className={`p-4 ${className}`}>{children}</div>;
+export function CardContent({ children }: { children: React.ReactNode }) {
+  return <div>{children}</div>;
 }
