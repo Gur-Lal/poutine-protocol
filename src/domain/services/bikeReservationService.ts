@@ -12,6 +12,17 @@ export class BikeReservationService {
         
         const {username, stationName, bikeId } = args;
 
+        const activeReservationSnap = await this.db
+        .collection("reservations")
+        .where("username", "==", username)
+        .where("status", "==", "active")
+        .limit(1)
+        .get();
+
+        if (!activeReservationSnap.empty) {
+            throw new Error("User already has an active reservation. Please return the previous bike first.");
+        }
+
         const stationSnap = await this.db
         .collection("stations")
         .where("name", "==", stationName)
@@ -37,6 +48,7 @@ export class BikeReservationService {
                 throw new Error("No bikes available at this station.");
             }
 
+            /** 
             const existingRes = await tx.get(this.db
                 .collection("reservations")
                 .where("username", "==", username)
@@ -47,6 +59,7 @@ export class BikeReservationService {
             if(!existingRes.empty){
                 throw new Error("User already has an active reservation.");
             }
+            */
 
             const bikeRef = this.db.collection("bikes").doc(bikeId);
             const bikeDoc = await tx.get(bikeRef);
@@ -78,6 +91,7 @@ export class BikeReservationService {
                 bikeId: reservation.bikeId,
                 startTime: startTs,
                 reservationExpiry: expiryTs,
+                status: "active",
             });
 
             const newNumberOfBikes = (station.numberOfBikes ?? 0) - 1;
@@ -128,6 +142,7 @@ export class BikeReservationService {
         const reservationSnap = await this.db.collection("reservations")
         .where("bikeId", "==", bikeId)
         .where("username", "==", username)
+        .where("status", "==", "active")
         .limit(1)
         .get();
 
@@ -142,23 +157,27 @@ export class BikeReservationService {
             : Timestamp.fromDate(reservation.reservationExpiry);
 
         if(currentTime.toMillis() > reservationExpiry.toMillis()){
-            await this.db.collection("reservations").doc(reservationDoc.id).update({
-                status: "expired",
-            });
+            await this.db.runTransaction(async (tx) => {
+                tx.update(reservationDoc.ref, {
+                    status: "expired",
+                });
 
-            await bikeRef.update({status: "available"});
+                tx.update(bikeRef, {
+                    status: "available"
+                });
+            });
 
             return {
                 ok: false,
                 message: "Reservation expired, bike is now available.",
             };
         } else {
-            await this.db.collection("reservations").doc(reservationDoc.id).update({
-                startTime: currentTime.toDate(),
-            });
+            await this.db.runTransaction(async (tx) => {
 
-            await bikeRef.update({
-                status: "on_trip" as BikeStatus,
+                tx.update(bikeRef, {
+                    status: "on_trip" as BikeStatus,
+                    stationId: null, 
+                });
             });
 
             if(bike.stationId){
@@ -194,5 +213,87 @@ private async freeUpDock(stationId: string) {
         });
 
         }
+    }
+
+    async returnBike({
+        username,
+        bikeId,
+        stationId,
+    }: {
+        username: string;
+        bikeId: string;
+        stationId: string;
+    }) {
+        const bikeRef = this.db.collection("bikes").doc(bikeId);
+        const bikeSnap = await bikeRef.get();
+
+        if(!bikeSnap.exists){
+            throw new Error("Bike not found.");
+        }
+
+        const bike = bikeSnap.data() as Bike;
+
+        if(bike.status !== "on_trip"){
+            throw new Error("Bike is not currently in use or not on a trip.");
+        }
+
+        const stationRef = this.db.collection("stations").doc(stationId);
+        const stationDoc = await stationRef.get();
+
+        if(!stationDoc.exists){
+            throw new Error("Station not found.");
+        }
+
+        const station = stationDoc.data() as DockStation;
+
+        const availableDockSnap = await stationRef.collection("docks")
+        .where("status", "==", "empty")
+        .limit(1)
+        .get();
+
+        if(availableDockSnap.empty){
+            throw new Error("No available docks at this station.");
+        }
+
+        const dockRef = availableDockSnap.docs[0].ref;
+
+        await this.db.runTransaction(async(tx: Transaction) => {
+            tx.update(bikeRef, {
+                status: "available" as BikeStatus,
+                stationId: stationId,
+            });
+
+            tx.update(dockRef, {
+                status: "occupied",
+                bikeId: bikeId,
+            });
+
+            tx.update(stationRef, {
+                numberOfBikes: FieldValue.increment(1),
+            });
+
+            const newStatus = station.numberOfBikes + 1 >= station.capacity ? "full" : "occupied";
+            tx.update(stationRef, {
+                status: newStatus,
+            });
+
+            const reservationSnap = await this.db.collection("reservations")
+            .where("bikeId", "==", bikeId)
+            .where("username", "==", username)
+            .limit(1)
+            .get();
+
+            if(!reservationSnap.empty){
+                const reservationDoc = reservationSnap.docs[0];
+                tx.update(reservationDoc.ref, {
+                    status: "completed",
+                });
+            }
+        });
+
+        return {
+            ok: true, 
+            message: "Bike returned successfully, and dock status updated.",
+        };
     }
 }
