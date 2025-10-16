@@ -62,42 +62,9 @@ export class BikeReservationService {
                 throw new Error("Bike is not at the specified station.");
             }
 
-            const docksCol = stationRef.collection("docks");
-            const dockWithThisBike = await tx.get(
-                docksCol.where("bikeId", "==", bikeId).limit(1)
-            );
-
-            let dockRefToVacate: DocumentReference | null = null;
-
-            if(!dockWithThisBike.empty){
-                dockRefToVacate = dockWithThisBike.docs[0].ref;
-            } else {
-                const anyOcc = await tx.get(
-                    docksCol.where("status", "==", "occupied").limit(1)
-                );
-
-                if(anyOcc.empty){
-                    throw new Error("No occupied dock found to vacate.");
-                }
-                dockRefToVacate = anyOcc.docs[0].ref;
-            }
-
-            if(!dockRefToVacate){
-                throw new Error("No occupied dock found to vacate");
-            }
-
-            tx.update(dockRefToVacate, {
-                status: "empty",
-                bikeId: null,
-            } as UpdateData<Dock>);
-
-            tx.update(stationRef, {
-                numberOfBikes: FieldValue.increment(-1),
-            } as UpdateData<DockStation>);
-
             tx.update(bikeRef, {
-                status: "reserved",
-            } as UpdateData<Bike>);
+            status: "reserved",
+        } as UpdateData<Bike>);
 
             const startTs = Timestamp.now();
             const expiryMs = (station.expiresAfterMinutes ?? 10) * 60 * 1000;
@@ -142,5 +109,90 @@ export class BikeReservationService {
             station: result.stationSnapshot,
             bike: result.bikeSnapshot,
         };
+    }
+
+    async unlockBike({username, bikeId,}: {username: string; bikeId: string;}){
+        const bikeRef = this.db.collection("bikes").doc(bikeId);
+        const bikeSnap = await bikeRef.get();
+
+        if(!bikeSnap.exists){
+            throw new Error("Bike not found.");
+        }
+
+        const bike = bikeSnap.data() as Bike;
+
+        if(bike.status !== "reserved"){
+            throw new Error("Bike is not reserved.");
+        }
+
+        const reservationSnap = await this.db.collection("reservations")
+        .where("bikeId", "==", bikeId)
+        .where("username", "==", username)
+        .limit(1)
+        .get();
+
+        if (reservationSnap.empty) throw new Error("Reservation not found.");
+
+        const reservationDoc = reservationSnap.docs[0];
+        const reservation = reservationDoc.data() as Reservation;
+
+        const currentTime = Timestamp.now();
+        const reservationExpiry = reservation.reservationExpiry instanceof Timestamp
+            ? reservation.reservationExpiry
+            : Timestamp.fromDate(reservation.reservationExpiry);
+
+        if(currentTime.toMillis() > reservationExpiry.toMillis()){
+            await this.db.collection("reservations").doc(reservationDoc.id).update({
+                status: "expired",
+            });
+
+            await bikeRef.update({status: "available"});
+
+            return {
+                ok: false,
+                message: "Reservation expired, bike is now available.",
+            };
+        } else {
+            await this.db.collection("reservations").doc(reservationDoc.id).update({
+                startTime: currentTime.toDate(),
+            });
+
+            await bikeRef.update({
+                status: "on_trip" as BikeStatus,
+            });
+
+            if(bike.stationId){
+                await this.freeUpDock(bike.stationId);
+            }
+            return {
+                ok:true,
+                message: "Bike unlocked and marked as in use.",
+            };
+        }
+    }
+
+private async freeUpDock(stationId: string) {
+    const stationRef = this.db.collection("stations").doc(stationId);
+    const stationDoc = await stationRef.get();
+
+    if (!stationDoc.exists) throw new Error("Station not found.");
+    const station = stationDoc.data() as DockStation;
+
+    const dockSnap = await stationRef.collection("docks").where("status", "==", "occupied").limit(1).get();
+
+    if (!dockSnap.empty) {
+        const dockRef = dockSnap.docs[0].ref;
+
+        await dockRef.update({
+            status: "empty",
+            bikeId: null,
+        });
+
+        
+        await stationRef.update({
+            numberOfBikes: FieldValue.increment(-1),
+        });
+
+        }
     }
 }
