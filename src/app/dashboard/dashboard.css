@@ -1,0 +1,59 @@
+
+.dashboardContainer{
+    display:flex;
+    flex-direction: column;
+    height: 100vh;
+}
+
+.dashboardArea{
+    display:flex;
+    flex:1;
+    height:100%;
+}
+
+.title{
+    font-family:'Arial';
+    font-size:25px;
+    font-weight:bolder;
+}
+
+.stationList{
+    width:50%;
+    overflow-y:auto;
+    padding:20px;
+}
+.stationItem{
+    margin:20px;
+    padding:20px;
+    background-color:rgb(21, 21, 26);
+    border-radius:20px;
+}
+
+.stationItem:hover{
+    background-color:rgb(47, 47, 58);
+    transition:0.3s ease;
+    cursor:pointer;
+}
+.status{
+    margin:10px 0 20px 0;
+    width:fit-content;
+    padding: 5px 10px;
+    border-radius:10px;
+}
+
+#occupied{
+    background-color:rgb(187, 192, 60);
+}
+
+#empty{
+    background-color:rgb(97, 192, 60);
+}
+
+#full{
+    background-color:rgb(192, 60, 60);
+}
+.address{
+    font-weight:bold;
+    font-size:20px;
+}
+

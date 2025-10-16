@@ -20,7 +20,7 @@ export async function POST(req: Request) {
         capacity,
         numberOfBikes: bikes,
         coordinatePosition: { latitude: 45.5, longitude: -73.6 },
-        address: "123 Test St",
+        address: "123 Test St ",
         expiresAfterMinutes,
         });
 
@@ -56,7 +56,7 @@ export async function POST(req: Request) {
         ok: true,
         station: { id: stationRef.id, name: stationName, capacity, numberOfBikes: bikes },
         bikes: createdBikeIds.map((id, idx) => ({ id, label: `bike-${idx + 1}` })),
-        hint: "Use one of the bike IDs below to reserve.",
+        
         });
     } catch (e: any) {
         return NextResponse.json({ ok: false, error: e.message }, { status: 500 });
