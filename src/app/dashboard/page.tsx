@@ -17,6 +17,7 @@ export default function DashboardPage() {
     const [selectedStation, setSelectedStation] = useState<DockStation>();
     const [openReservationMenu, setOpenReservationMenu] = useState(false);
     const [bikes, setBikes] = useState<Bike[]>([]);
+    const [selectedBike, setSelectedBike] = useState<Bike>();
     const router = useRouter();
 
     useEffect(()=>{
@@ -53,7 +54,7 @@ export default function DashboardPage() {
             const response = await axios.get(`/api/getBikes/${stationId}`);
             setBikes(response.data);
         } catch(error){
-            console.log("Error fetching docks:", error);
+            console.log("Error fetching bikes:", error);
         }
     }
 
@@ -63,6 +64,22 @@ export default function DashboardPage() {
         fetchBikesByStation(station.id);
     }
 
+    const handleBikeClick = (bike:Bike) =>{
+        setSelectedBike(bike);
+        
+    }
+    const reserveBike = async (username: string, stationName: string, bikeId: string) =>{
+        try{
+            const response = await axios.post(`/api/reserveBike`, {
+                username: username,
+                stationName: stationName,
+                bikeId: bikeId
+            });
+            
+        } catch(error){
+            console.log("Error reserving bike:", error);
+        }
+    }
     return (
         <main className="dashboardContainer">
             <div className="header">
@@ -101,16 +118,24 @@ export default function DashboardPage() {
                                     setBikes([]);
                                 }}/>
                                 <p className="title">RESERVE A BIKE</p>
-                                <p>{selectedStation.name}</p>
+                                <p>{selectedStation.name.toUpperCase()}</p>
                                 <div className="bikeList">
                                 {
                                     bikes.map((bike, index)=>(
-                                        <div className="bikeItem" id={bike.status === "available"? "available":"reserved"}key={index}> 
+                                        <div className="bikeItem" id={bike.status === "available"? "available":"reserved"}key={index} onClick={()=> handleBikeClick(bike)}> 
                                             <p>Bike {index + 1}: {bike.status.toUpperCase()}</p>
                                         </div>
                                     ))
                                 }
                             </div>
+                            <button className="reserveButton" onClick={() => {
+                                    if (!selectedBike) {
+                                        alert("Please select a bike");
+                                        return;
+                                    }
+                                    reserveBike(username, selectedStation!.name, selectedBike.id);
+                                }}> RESERVE
+                            </button>
                         </div>
                     </div>
                 )
