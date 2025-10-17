@@ -83,7 +83,7 @@ export class BikeReservationService {
             const expiryMs = (station.expiresAfterMinutes ?? 10) * 60 * 1000;
             const expiryTs = Timestamp.fromMillis(startTs.toMillis() + expiryMs);
 
-            const reservation = new Reservation(username, bikeId, startTs.toDate(), expiryTs.toDate());
+            const reservation = new Reservation(username, bikeId, startTs.toDate(), expiryTs.toDate(), "active");
 
             const reservationRef = this.db.collection("reservations").doc();
             tx.set(reservationRef, {
@@ -192,27 +192,42 @@ export class BikeReservationService {
 
 private async freeUpDock(stationId: string) {
     const stationRef = this.db.collection("stations").doc(stationId);
-    const stationDoc = await stationRef.get();
-
-    if (!stationDoc.exists) throw new Error("Station not found.");
-    const station = stationDoc.data() as DockStation;
-
-    const dockSnap = await stationRef.collection("docks").where("status", "==", "occupied").limit(1).get();
-
-    if (!dockSnap.empty) {
-        const dockRef = dockSnap.docs[0].ref;
-
-        await dockRef.update({
-            status: "empty",
-            bikeId: null,
-        });
-
+    await this.db.runTransaction(async (tx) => {
+        const stationDoc = await tx.get(stationRef);
         
-        await stationRef.update({
-            numberOfBikes: FieldValue.increment(-1),
-        });
+        if (!stationDoc.exists) throw new Error("Station not found.");
+        const station = stationDoc.data() as DockStation;
 
+        const dockSnap = await stationRef.collection("docks")
+            .where("status", "==", "occupied")
+            .limit(1)
+            .get();
+
+        if (!dockSnap.empty) {
+            const dockRef = dockSnap.docs[0].ref;
+
+            tx.update(dockRef, {
+                status: "empty",
+                bikeId: null,
+            });
+
+            const newNumberOfBikes = (station.numberOfBikes ?? 1) - 1;
+            
+            let newStatus: StationStatus;
+            if (newNumberOfBikes <= 0) {
+                newStatus = "empty";
+            } else if (newNumberOfBikes >= (station.capacity ?? Number.MAX_SAFE_INTEGER)) {
+                newStatus = "full";
+            } else {
+                newStatus = "occupied";
+            }
+
+            tx.update(stationRef, {
+                numberOfBikes: newNumberOfBikes,
+                status: newStatus,
+            });
         }
+    });
     }
 
     async returnBike({

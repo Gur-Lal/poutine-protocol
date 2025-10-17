@@ -32,4 +32,23 @@ export class FirestoreRepository{
             console.error("Error fetching bikes:", error);
         }
     }
+
+    async getReservationByUsername(username: string){
+        try{
+            const snapshot = await this.db.collection("reservations")
+            .where("username", "==",username)
+            .where("status","==","active")
+            .get();
+
+            if(snapshot.empty){
+                return null;
+            }
+
+            const doc = snapshot.docs[0];
+
+            return {id:doc.id, ...doc.data()};
+        } catch(error){
+            console.error("Error fetching reservation:", error);
+        }
+    }
 }

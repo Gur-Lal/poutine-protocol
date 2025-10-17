@@ -7,6 +7,7 @@ import { onAuthStateChanged } from "firebase/auth";
 import { DockStation } from "@/domain/models/DockStation";
 import { Bike } from "@/domain/models/Bike";
 import { FaXmark } from "react-icons/fa6";
+import { Reservation } from "@/domain/models/Reservation";
 import axios from "axios";
 import "./dashboard.css";
 
@@ -18,6 +19,8 @@ export default function DashboardPage() {
     const [openReservationMenu, setOpenReservationMenu] = useState(false);
     const [bikes, setBikes] = useState<Bike[]>([]);
     const [selectedBike, setSelectedBike] = useState<Bike>();
+    const [showReservations, setShowReservations] = useState(false);
+    const [reservation, setReservation] = useState<Reservation>();
     const router = useRouter();
 
     useEffect(()=>{
@@ -42,9 +45,11 @@ export default function DashboardPage() {
 
     useEffect(() => {
         console.log(selectedStation);
-        console.log(bikes);
     }, [selectedStation]);
         
+    useEffect(() => {
+        console.log(selectedBike);
+    }, [selectedBike]);
     if (loading) {
         return <p>Loading...</p>;
     }
@@ -63,8 +68,16 @@ export default function DashboardPage() {
         setOpenReservationMenu(true);
         fetchBikesByStation(station.id);
     }
-
+    const handleCloseReservationMenu = () => {
+        setOpenReservationMenu(false);
+        setBikes([]);
+        setSelectedStation(undefined);
+        setSelectedBike(undefined);
+    }
     const handleBikeClick = (bike:Bike) =>{
+        if(bike.status === "reserved") {
+            return;
+        }
         setSelectedBike(bike);
         
     }
@@ -78,11 +91,80 @@ export default function DashboardPage() {
             
         } catch(error){
             console.log("Error reserving bike:", error);
+        } finally{ 
+            handleCloseReservationMenu();
         }
     }
+
+    const handleViewReservation = async(username: string) => {
+        try{
+            const response = await axios.get(`/api/getReservation/${username}`);
+            const data = response.data;
+            if(data){
+                const startTime = new Date(data.startTime._seconds * 1000); 
+                const reservationExpiry = new Date(data.reservationExpiry._seconds * 1000); 
+                
+                setReservation({
+                    ...data,
+                    startTime: startTime,
+                    reservationExpiry: reservationExpiry
+                });
+            } else{
+                setReservation(undefined);
+            }
+        } catch (error){
+            console.log("Error fetching reservations.", error);
+        } finally{
+            setShowReservations(true);
+        }
+    }
+
+    const unlockBike = async (username: string, bikeId: string) => {
+        try{
+            const response = await axios.post(`/api/unlockBike`, {
+                username: username,
+                bikeId: bikeId
+            });
+
+            if(response.data.ok){
+                alert("Bike unlocked successfully!");
+                setShowReservations(false);
+                setReservation(undefined);
+            } else {
+                alert("Failed to unlock bike: " + response.data.error);
+            }
+        } catch(error) {
+            console.log("Error unlocking bike:", error);
+            alert("Error unlocking bike");
+        }
+    }
+
+    const returnBike = async (username: string, bikeId: string, stationId: string) => {
+    try {
+        const response = await axios.post(`/api/returnBike`, {
+            username: username,
+            bikeId: bikeId,
+            stationId: stationId
+        });
+        
+        if (response.data.ok) {
+            alert("Bike returned successfully!");
+            setShowReservations(false);
+            setReservation(undefined);
+        } else {
+            alert("Failed to return bike: " + response.data.error);
+        }
+    } catch (error) {
+        console.log("Error returning bike:", error);
+        alert("Error returning bike");
+    }
+}
     return (
         <main className="dashboardContainer">
             <div className="header">
+                <div className="navBar">
+                    <div className="navOption" onClick={()=>handleViewReservation(username)}>View Reservation</div>
+                </div>
             </div>
             <div className="dashboardArea"> 
                 <div className="stationList">
@@ -113,16 +195,13 @@ export default function DashboardPage() {
                     <div>
                         <div className="background"></div>
                             <div className="reservationMenu">
-                                <FaXmark className="xButton" onClick={()=>{
-                                    setOpenReservationMenu(false);
-                                    setBikes([]);
-                                }}/>
+                                <FaXmark className="xButton" onClick={()=> handleCloseReservationMenu()}/>
                                 <p className="title">RESERVE A BIKE</p>
                                 <p>{selectedStation.name.toUpperCase()}</p>
                                 <div className="bikeList">
                                 {
                                     bikes.map((bike, index)=>(
-                                        <div className="bikeItem" id={bike.status === "available"? "available":"reserved"}key={index} onClick={()=> handleBikeClick(bike)}> 
+                                        <div className={`bikeItem ${selectedBike?.id === bike.id ? 'selected' : ''} ${bike.status === "available" ? 'available' : 'reserved'}`} key={index} onClick={()=> handleBikeClick(bike)}> 
                                             <p>Bike {index + 1}: {bike.status.toUpperCase()}</p>
                                         </div>
                                     ))
@@ -136,6 +215,28 @@ export default function DashboardPage() {
                                     reserveBike(username, selectedStation!.name, selectedBike.id);
                                 }}> RESERVE
                             </button>
+                            
+                        </div>
+                    </div>
+                )
+            }
+
+            {
+                showReservations && (
+                    <div>
+                        <div className="background"></div>
+                        <div className="reservation">
+                            <FaXmark className="xButton" onClick={()=> setShowReservations(false)}/>
+                            {!reservation? (<p>No active reservations</p>):(
+                                <div>
+                                    
+                                    <p>Reservation</p>
+                                    <p>{reservation.status}</p>
+                                    <p>Start Time: {reservation.startTime.toLocaleString()}</p>
+                                    <p>Expires: {reservation.reservationExpiry.toLocaleString()}</p>
+                                    <button onClick={() => unlockBike(username, reservation.bikeId)}> Unlock Bike</button>
+                                </div>
+                            )}
                         </div>
                     </div>
                 )
