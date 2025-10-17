@@ -10,6 +10,7 @@ export type StationStatus = "empty" | "occupied" | "full" | "out_of_service";
 
 export class DockStation {
   constructor(
+    public id: string,
     public name: string,
     public status: StationStatus,
     public coordinatePosition: Point,

@@ -18,4 +18,18 @@ export class FirestoreRepository{
 
         return documents;
     }
+
+    async getBikesByStationId(stationId:string){
+        try{
+            const bikesSnapshot = await this.db.collection("bikes").where("stationId","==",stationId).get();
+
+            const bikes = bikesSnapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data(),
+            }));
+            return bikes;
+        } catch(error){
+            console.error("Error fetching bikes:", error);
+        }
+    }
 }

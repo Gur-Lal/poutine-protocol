@@ -11,4 +11,9 @@ export class FirestoreService{
         const documents = this.repository.getAllDocuments(collectionName);
         return documents;
     }
+
+    async getBikesByStationId(stationId:string){
+        const bikes = this.repository.getBikesByStationId(stationId);
+        return bikes;
+    }
 }
