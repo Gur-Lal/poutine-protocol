@@ -1,16 +1,25 @@
-import {NextResponse, NextRequest } from "next/server";
-import { FirestoreService } from "@/data/firestoreService";
+import { NextRequest, NextResponse } from "next/server";
+import { adminDb } from "@/data/firebaseAdmin";
 
-const service = new FirestoreService();
-
-export async function GET(req : NextRequest, {params}:{ params: {username: string}}) {
+export async function GET(
+    request: NextRequest,
+    { params }: { params: { userId: string } }
+) {
     try {
-        //console.log(params);
+        const { userId } = params;
 
-        const {username} = await params;
-        const result = await service.getReservationByUsername(username);
-        return NextResponse.json(result);
-    } catch  (e: any) {
-        return NextResponse.json({ok:false, error: e.message }, {status: 400});
+        const userDoc = await adminDb.collection("users").doc(userId).get();
+
+        if (!userDoc.exists) {
+            return NextResponse.json({ role: "rider" });
+        }
+
+        const userData = userDoc.data();
+        const role = userData?.role || "rider";
+
+        return NextResponse.json({ role });
+    } catch (error) {
+        console.error("Error fetching user role:", error);
+        return NextResponse.json({ role: "rider" });
     }
 }
