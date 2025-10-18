@@ -29,12 +29,7 @@ export default function DashboardPage() {
             if(user){
                 setUsername(user.displayName || user.email || "");
 
-                try{
-                    const response = await axios.get(`/api/getDocuments/stations`);
-                    setStations(response.data);
-                } catch (error) {
-                    console.log("Error fetching stations:", error);
-                }
+                await fetchStations();
             } else {
                 router.push("/login");
             }
@@ -55,6 +50,22 @@ export default function DashboardPage() {
         return <p>Loading...</p>;
     }
     
+    const fetchStations = async () =>{
+        try {
+            const response = await axios.get(`api/getDocuments/stations`);
+            setStations(response.data);
+        } catch (error) {
+            console.log("Error fetching stations: ", error);
+        }
+    };
+
+    const refreshStationAndBikes = async(stationId?:string) => {
+        await fetchStations();
+        if(stationId){
+            await fetchBikesByStation(stationId);
+        }
+    }
+
     const fetchBikesByStation = async (stationId:string) => {
         try{
             const response = await axios.get(`/api/getBikes/${stationId}`);
@@ -91,7 +102,7 @@ export default function DashboardPage() {
             });
             
             setReservedBikeId(bikeId);
-            
+            await refreshStationAndBikes(selectedStation?.id);
         } catch(error){
             console.log("Error reserving bike:", error);
         } finally{ 
@@ -133,6 +144,8 @@ export default function DashboardPage() {
                 alert("Bike unlocked successfully!");
                 setShowReservations(false);
                 setReservation(undefined);
+
+                await refreshStationAndBikes(selectedStation?.id);
             } else {
                 alert("Failed to unlock bike: " + response.data.error);
             }
@@ -155,6 +168,8 @@ export default function DashboardPage() {
             setShowReservations(false);
             setReservation(undefined);
             setReservedBikeId("");
+
+            await refreshStationAndBikes(stationId);
         } else {
             alert("Failed to return bike: " + response.data.error);
         }
