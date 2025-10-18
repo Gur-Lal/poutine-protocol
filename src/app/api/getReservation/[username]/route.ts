@@ -1,25 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
-import { adminDb } from "@/data/firebaseAdmin";
+import { FirestoreService } from "@/data/firestoreService";
 
 export async function GET(
     request: NextRequest,
-    { params }: { params: { userId: string } }
+    context: { params: { username: string } }
 ) {
     try {
-        const { userId } = params;
+        const username = context.params.username;
 
-        const userDoc = await adminDb.collection("users").doc(userId).get();
+        console.log("Getting reservation for username:", username);
 
-        if (!userDoc.exists) {
-            return NextResponse.json({ role: "rider" });
-        }
+        const firestoreService = new FirestoreService();
+        const reservation = await firestoreService.getReservationByUsername(username);
 
-        const userData = userDoc.data();
-        const role = userData?.role || "rider";
+        console.log("Reservation found:", reservation);
 
-        return NextResponse.json({ role });
+        return NextResponse.json(reservation);
     } catch (error) {
-        console.error("Error fetching user role:", error);
-        return NextResponse.json({ role: "rider" });
+        console.error("Error in getReservation API:", error);
+        return NextResponse.json(null);
     }
 }
