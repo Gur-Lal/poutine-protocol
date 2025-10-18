@@ -240,75 +240,68 @@ private async freeUpDock(stationId: string) {
         stationId: string;
     }) {
         const bikeRef = this.db.collection("bikes").doc(bikeId);
-        const bikeSnap = await bikeRef.get();
-
-        if(!bikeSnap.exists){
-            throw new Error("Bike not found.");
-        }
-
-        const bike = bikeSnap.data() as Bike;
-
-        if(bike.status !== "on_trip"){
-            throw new Error("Bike is not currently in use or not on a trip.");
-        }
-
         const stationRef = this.db.collection("stations").doc(stationId);
-        const stationDoc = await stationRef.get();
 
-        if(!stationDoc.exists){
-            throw new Error("Station not found.");
-        }
+        const activeResQuery = this.db.collection("reservations")
+        .where("bikeId", "==", bikeId)
+        .where("username", "==", username)
+        .where("status", "==", "active")         
+        .orderBy("startTime", "desc")           
+        .limit(1);
 
-        const station = stationDoc.data() as DockStation;
+        await this.db.runTransaction(async (tx) => {
+        
+        const [bikeSnap, stationSnap, dockQuerySnap, resQuerySnap] = await Promise.all([
+        tx.get(bikeRef),
+        tx.get(stationRef),
+        tx.get(stationRef.collection("docks").where("status", "==", "empty").limit(1)),
+        tx.get(activeResQuery),
+        ]);
 
-        const availableDockSnap = await stationRef.collection("docks")
-        .where("status", "==", "empty")
-        .limit(1)
-        .get();
+        if (!bikeSnap.exists) throw new Error("Bike not found.");
+        const bike = bikeSnap.data() as Bike;
+        if (bike.status !== "on_trip") throw new Error("Bike is not currently in use or not on a trip.");
 
-        if(availableDockSnap.empty){
-            throw new Error("No available docks at this station.");
-        }
+        if (!stationSnap.exists) throw new Error("Station not found.");
+        const station = stationSnap.data() as DockStation;
 
-        const dockRef = availableDockSnap.docs[0].ref;
+        if (dockQuerySnap.empty) throw new Error("No available docks at this station.");
+        const dockRef = dockQuerySnap.docs[0].ref;
 
-        await this.db.runTransaction(async(tx: Transaction) => {
-            tx.update(bikeRef, {
-                status: "available" as BikeStatus,
-                stationId: stationId,
-            });
-
-            tx.update(dockRef, {
-                status: "occupied",
-                bikeId: bikeId,
-            });
-
-            tx.update(stationRef, {
-                numberOfBikes: FieldValue.increment(1),
-            });
-
-            const newStatus = station.numberOfBikes + 1 >= station.capacity ? "full" : "occupied";
-            tx.update(stationRef, {
-                status: newStatus,
-            });
-
-            const reservationSnap = await this.db.collection("reservations")
-            .where("bikeId", "==", bikeId)
-            .where("username", "==", username)
-            .limit(1)
-            .get();
-
-            if(!reservationSnap.empty){
-                const reservationDoc = reservationSnap.docs[0];
-                tx.update(reservationDoc.ref, {
-                    status: "completed",
-                });
-            }
+        
+        tx.update(bikeRef, {
+        status: "available" as BikeStatus,
+        stationId: stationRef.id,
         });
 
-        return {
-            ok: true, 
-            message: "Bike returned successfully, and dock status updated.",
-        };
-    }
+        
+        tx.update(dockRef, {
+        status: "occupied",
+        bikeId: bikeId,
+        });
+
+        
+        const newNumberOfBikes = (station.numberOfBikes ?? 0) + 1;
+        const newStatus: StationStatus =
+        newNumberOfBikes >= (station.capacity ?? Number.MAX_SAFE_INTEGER)
+            ? "full"
+            : "occupied";
+
+        tx.update(stationRef, {
+        numberOfBikes: newNumberOfBikes,
+        status: newStatus,
+        });
+
+        
+        if (!resQuerySnap.empty) {
+        const resDoc = resQuerySnap.docs[0].ref;
+        tx.update(resDoc, { status: "completed" });
+        }
+    });
+
+    return {
+        ok: true,
+        message: "Bike returned successfully, and dock & reservation updated.",
+    };
+}
 }

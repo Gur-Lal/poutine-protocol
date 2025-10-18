@@ -19,8 +19,9 @@ export default function DashboardPage() {
     const [openReservationMenu, setOpenReservationMenu] = useState(false);
     const [bikes, setBikes] = useState<Bike[]>([]);
     const [selectedBike, setSelectedBike] = useState<Bike>();
+    const [reservedBikeId, setReservedBikeId] = useState("");
     const [showReservations, setShowReservations] = useState(false);
-    const [reservation, setReservation] = useState<Reservation>();
+    const [reservation, setReservation] = useState<Reservation> ();
     const router = useRouter();
 
     useEffect(()=>{
@@ -89,6 +90,8 @@ export default function DashboardPage() {
                 bikeId: bikeId
             });
             
+            setReservedBikeId(bikeId);
+            
         } catch(error){
             console.log("Error reserving bike:", error);
         } finally{ 
@@ -151,6 +154,7 @@ export default function DashboardPage() {
             alert("Bike returned successfully!");
             setShowReservations(false);
             setReservation(undefined);
+            setReservedBikeId("");
         } else {
             alert("Failed to return bike: " + response.data.error);
         }
@@ -177,7 +181,7 @@ export default function DashboardPage() {
                                 <p className="status" id={station.status === "empty" ? "empty": station.status === "occupied"? "occupied" : "full"}>{station.status.toUpperCase()}</p>
                                 
                                 <p className="capacity">Total Capacity: {station.capacity}</p>
-                                <p className="bikesAvailable">Bikes Available: {station.numberOfBikes}</p>
+                                <p className="bikesAvailable">Bikes: {station.numberOfBikes}</p>
                             </div>
                         ))
                     }
@@ -196,7 +200,7 @@ export default function DashboardPage() {
                         <div className="background"></div>
                             <div className="reservationMenu">
                                 <FaXmark className="xButton" onClick={()=> handleCloseReservationMenu()}/>
-                                <p className="title">RESERVE A BIKE</p>
+                                <p className="title">RESERVE or RETURN</p>
                                 <p>{selectedStation.name.toUpperCase()}</p>
                                 <div className="bikeList">
                                 {
@@ -207,15 +211,20 @@ export default function DashboardPage() {
                                     ))
                                 }
                             </div>
-                            <button className="reserveButton" onClick={() => {
-                                    if (!selectedBike) {
-                                        alert("Please select a bike");
-                                        return;
-                                    }
-                                    reserveBike(username, selectedStation!.name, selectedBike.id);
-                                }}> RESERVE
-                            </button>
-                            
+                            <div className="buttons">
+                                <button className="actionButton" onClick={() => {
+                                        if (!selectedBike) {
+                                            alert("Please select a bike");
+                                            return;
+                                        }
+                                        reserveBike(username, selectedStation!.name, selectedBike.id);
+                                    }} > RESERVE
+                                </button>
+                                <button className="actionButton" onClick={() => {
+                                    returnBike(username, reservedBikeId, selectedStation.id);
+                                }} > RETURN
+                                </button>
+                            </div>
                         </div>
                     </div>
                 )
@@ -230,11 +239,12 @@ export default function DashboardPage() {
                             {!reservation? (<p>No active reservations</p>):(
                                 <div>
                                     
-                                    <p>Reservation</p>
-                                    <p>{reservation.status}</p>
+                                    <p className="title">Reservation</p>
+                                    <p className="reservationStatus">{reservation.status.toUpperCase()}</p>
                                     <p>Start Time: {reservation.startTime.toLocaleString()}</p>
-                                    <p>Expires: {reservation.reservationExpiry.toLocaleString()}</p>
-                                    <button onClick={() => unlockBike(username, reservation.bikeId)}> Unlock Bike</button>
+                                    <p style={{marginBottom: "20px"}}>Expires: {reservation.reservationExpiry.toLocaleString()}</p>
+                                    <button className="actionButton" onClick={() => unlockBike(username, reservation.bikeId)}> Unlock Bike</button>
+                                    
                                 </div>
                             )}
                         </div>
