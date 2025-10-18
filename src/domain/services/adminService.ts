@@ -341,4 +341,71 @@ export class AdminService {
             message: message,
         };
     }
+
+    // Reset the system to initial state
+    async resetSystem() {
+        // Get all bikes, stations, and active reservations
+        // Changes after this data is retrieved will not be reflected
+        const bikesSnapshot = await this.db.collection("bikes").get();
+        const stationsSnapshot = await this.db.collection("stations").get();
+        const reservationsQuery = this.db.collection("reservations").where("status", "==", "active");
+        const reservationsSnapshot = await reservationsQuery.get();
+
+        // Create a write batch (all writes commit atomically)
+        const batch = this.db.batch();
+
+        // Reset every bike's status to available
+        for (const bikeDoc of bikesSnapshot.docs) {
+            batch.update(bikeDoc.ref, {
+                status: "available" as BikeStatus,
+            });
+        }
+
+        // Recalculate each station's status
+        for (const stationDoc of stationsSnapshot.docs) {
+            const station = stationDoc.data() as DockStation;
+
+            // Count the # of bikes at the station
+            let bikesAtStation = 0;
+
+            for (const bikeDoc of bikesSnapshot.docs) {
+                const bike = bikeDoc.data() as Bike & { stationId?: string }; // Bike and optional station id 
+                if (bike.stationId === stationDoc.id) {
+                    bikesAtStation = bikesAtStation + 1;
+                }
+            }
+
+            // Calculate new status
+            let newStatus: StationStatus;
+            if (bikesAtStation <= 0) {
+                newStatus = "empty";
+            }
+            else if (bikesAtStation >= station.capacity) {
+                newStatus = "full";
+            }
+            else {
+                newStatus = "occupied";
+            }
+
+            batch.update(stationDoc.ref, {
+                numberOfBikes: bikesAtStation,
+                status: newStatus,
+            });
+        }
+
+        // Cancel all active reservations
+        for (const reservationDoc of reservationsSnapshot.docs) {
+            batch.update(reservationDoc.ref, {
+                status: "cancelled",
+            });
+        }
+
+        // Execute all updates
+        await batch.commit();
+
+        return {
+            ok: true,
+            message: "System reset to initial state",
+        };
+    }
 }
