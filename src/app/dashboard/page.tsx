@@ -22,6 +22,7 @@ export default function DashboardPage() {
     const [reservedBikeId, setReservedBikeId] = useState("");
     const [showReservations, setShowReservations] = useState(false);
     const [reservation, setReservation] = useState<Reservation> ();
+    const [reservedBike, setReservedBike] = useState<Bike | null>(null);
     const router = useRouter();
 
     useEffect(()=>{
@@ -29,7 +30,12 @@ export default function DashboardPage() {
             if(user){
                 setUsername(user.displayName || user.email || "");
 
-                await fetchStations();
+                try {
+                    const response = await axios.get(`api/getDocuments/stations`);
+                    setStations(response.data);
+                } catch (error) {
+                    console.log("Error fetching stations: ", error);
+                }
             } else {
                 router.push("/login");
             }
@@ -74,6 +80,15 @@ export default function DashboardPage() {
             console.log("Error fetching bikes:", error);
         }
     }
+    
+    const fetchBikeById = async (bikeId: string) => {
+        try{
+            const response = await axios.get(`/api/getBikeById/${bikeId}`);
+            setReservedBike(response.data);
+        } catch(error){
+            console.log("Error fetching bike: ", error);
+        }
+    }
 
     const handleStationClick = (station: DockStation) =>{
         setSelectedStation(station);
@@ -100,9 +115,11 @@ export default function DashboardPage() {
                 stationName: stationName,
                 bikeId: bikeId
             });
-            
-            setReservedBikeId(bikeId);
-            await refreshStationAndBikes(selectedStation?.id);
+            if(response.data.ok){
+                setReservedBikeId(bikeId);
+                await fetchBikeById(bikeId);
+                await refreshStationAndBikes(selectedStation?.id);
+            }
         } catch(error){
             console.log("Error reserving bike:", error);
         } finally{ 
@@ -123,8 +140,12 @@ export default function DashboardPage() {
                     startTime: startTime,
                     reservationExpiry: reservationExpiry
                 });
+                setReservedBikeId(data.bikeId);
+                await fetchBikeById(data.bikeId);
             } else{
                 setReservation(undefined);
+                setReservedBikeId("");
+                setReservedBike(null);
             }
         } catch (error){
             console.log("Error fetching reservations.", error);
@@ -144,7 +165,7 @@ export default function DashboardPage() {
                 alert("Bike unlocked successfully!");
                 setShowReservations(false);
                 setReservation(undefined);
-
+                
                 await refreshStationAndBikes(selectedStation?.id);
             } else {
                 alert("Failed to unlock bike: " + response.data.error);
@@ -168,7 +189,7 @@ export default function DashboardPage() {
             setShowReservations(false);
             setReservation(undefined);
             setReservedBikeId("");
-
+            setReservedBike(null);
             await refreshStationAndBikes(stationId);
         } else {
             alert("Failed to return bike: " + response.data.error);
@@ -233,11 +254,12 @@ export default function DashboardPage() {
                                             return;
                                         }
                                         reserveBike(username, selectedStation!.name, selectedBike.id);
-                                    }} > RESERVE
+                                    }} 
+                                    disabled={reservedBikeId !== ""}> RESERVE
                                 </button>
                                 <button className="actionButton" onClick={() => {
                                     returnBike(username, reservedBikeId, selectedStation.id);
-                                }} > RETURN
+                                }} disabled={!(reservedBikeId !== "")}> RETURN
                                 </button>
                             </div>
                         </div>
@@ -258,7 +280,7 @@ export default function DashboardPage() {
                                     <p className="reservationStatus">{reservation.status.toUpperCase()}</p>
                                     <p>Start Time: {reservation.startTime.toLocaleString()}</p>
                                     <p style={{marginBottom: "20px"}}>Expires: {reservation.reservationExpiry.toLocaleString()}</p>
-                                    <button className="actionButton" onClick={() => unlockBike(username, reservation.bikeId)}> Unlock Bike</button>
+                                    <button className="actionButton" onClick={() => unlockBike(username, reservation.bikeId)} disabled={reservedBike?.status === "on_trip"}> Unlock Bike</button>
                                     
                                 </div>
                             )}
