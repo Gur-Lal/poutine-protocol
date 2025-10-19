@@ -59,7 +59,7 @@ export class MonthlyPricing implements PricingStrategy {
     this.monthlyFee = monthlyFee;
   }
 
-  calculatePrice(trip: Trip): number {
+  calculatePrice(): number {
     return 0; 
   }
 }

@@ -1,4 +1,4 @@
-import {Firestore, Timestamp} from "firebase-admin/firestore";
+import {Firestore} from "firebase-admin/firestore";
 import {adminDb} from "@/data/firebaseAdmin";
 
 export class FirestoreRepository{

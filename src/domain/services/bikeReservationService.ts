@@ -1,8 +1,7 @@
-import { Firestore, Transaction, FieldValue, Timestamp, UpdateData, DocumentReference} from "firebase-admin/firestore";
+import { Firestore, Transaction, Timestamp, UpdateData} from "firebase-admin/firestore";
 
 import { Reservation } from "../models/Reservation";
 import { Bike, BikeStatus} from "../models/Bike";
-import { Dock, DockStatus } from "../models/Dock";
 import { DockStation, StationStatus } from "../models/DockStation";
 
 export class BikeReservationService {
