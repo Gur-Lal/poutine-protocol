@@ -6,7 +6,7 @@ export async function GET(
     context: { params: { userId: string } }
 ) {
     try {
-        const userId = context.params.userId;
+        const { userId } = await context.params;
 
         const userDoc = await adminDb.collection("users").doc(userId).get();
 
