@@ -6,7 +6,7 @@ export async function GET(
     context: { params: { username: string } }
 ) {
     try {
-        const username = context.params.username;
+        const { username } = await context.params;
 
         console.log("Getting reservation for username:", username);
 
