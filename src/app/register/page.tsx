@@ -21,12 +21,15 @@ export default function RegisterPage() {
     const [lname, setLname] = useState("");
     const [address, setAddress] = useState("");
 
+    const [creditNumber, setCreditNumber] = useState("");
+    const [cvv, setCvv] = useState("");
+
     const handleRegister = async (e: React.FormEvent) => {
         e.preventDefault();
         setError("");
 
-        if (!email || !password || !fname || !lname) {
-            setError("Please fill in the first name, last name, email and password.");
+        if (!email || !password || !fname || !lname || !creditNumber || !cvv) {
+            setError("Please fill in all the required fields.");
             return;
         }
         if (password !== confirm) {
@@ -66,22 +69,22 @@ export default function RegisterPage() {
                 <h3>Create Account</h3>
 
                 <div>
-                    <label>First Name</label>
+                    <label><span className="required-star">*</span> First Name</label>
                     <input type="text" value={fname} onChange={(e) => setFname(e.target.value)} required />
                 </div>
 
                 <div>
-                    <label>Last Name</label>
+                    <label><span className="required-star">*</span> Last Name</label>
                     <input type="text" value={lname} onChange={(e) => setLname(e.target.value)} required />
                 </div>
 
                 <div>
-                    <label>Username</label>
+                    <label><span className="required-star">*</span>Username</label>
                     <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} required />
                 </div>
 
                 <div>
-                    <label>Address</label>
+                    <label><span className="required-star">*</span> Address</label>
                     <input
                         type="text"
                         placeholder="123 Main St, Montreal, Canada"
@@ -91,12 +94,57 @@ export default function RegisterPage() {
                 </div>
 
                 <div>
-                    <label>Email</label>
+                    <label><span className="required-star">*</span> Credit Card Number</label>
+                    <input
+                        type="text"
+                        placeholder="Enter 16-digit number"
+                        value={creditNumber}
+                        onChange={(e) => {
+                            // Remove all non-digits
+                            const digitsOnly = e.target.value.replace(/\D/g, '');
+
+                            // Limit to 16 digits
+                            if (digitsOnly.length <= 16) {
+                                setCreditNumber(digitsOnly);
+                            }
+                        }}
+
+                        maxLength={16}
+                        pattern="\d{16}"
+                        title="Credit card number must be exactly 16 digits"
+                    />
+                </div>
+
+
+                <div>
+                    <label><span className="required-star">*</span> CVV</label>
+                    <input
+                        type="text"
+                        placeholder="Enter 3-digit number"
+                        value={cvv}
+                        onChange={(e) => {
+                            // Remove all non-digits
+                            const digitsOnly = e.target.value.replace(/\D/g, '');
+
+                            // Limit to 3 digits
+                            if (digitsOnly.length <= 3) {
+                                setCvv(digitsOnly);
+                            }
+                        }}
+
+                        maxLength={3}
+                        pattern="\d{3}"
+                        title="Credit card number must be exactly 16 digits"
+                    />
+                </div>
+
+                <div>
+                    <label><span className="required-star">*</span> Email</label>
                     <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
                 </div>
 
                 <div>
-                    <label>Password</label>
+                    <label><span className="required-star">*</span> Password</label>
                     <input
                         type="password"
                         placeholder="••••••••"
@@ -107,7 +155,7 @@ export default function RegisterPage() {
                 </div>
 
                 <div>
-                    <label>Confirm Password</label>
+                    <label><span className="required-star">*</span> Confirm Password </label>
                     <input
                         type="password"
                         placeholder="Re-enter your password"
