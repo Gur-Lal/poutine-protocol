@@ -12,11 +12,8 @@
     "axios": "^1.12.2",
     "dotenv": "^17.2.3",
     "firebase": "^12.3.0",
-<<<<<<< HEAD
     "firebase-admin": "^13.5.0",
-=======
     "lucide-react": "^0.545.0",
->>>>>>> phase_2
     "next": "15.5.4",
     "react": "19.1.0",
     "react-dom": "19.1.0",

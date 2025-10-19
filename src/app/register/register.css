@@ -62,3 +62,8 @@
 .register-box a {
     color: #25d7eb;
 }
+
+.required-star {
+    color: red;
+    margin-left: 2px;
+}

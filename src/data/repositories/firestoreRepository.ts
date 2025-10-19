@@ -51,4 +51,20 @@ export class FirestoreRepository{
             console.error("Error fetching reservation:", error);
         }
     }
+
+    async getBikeById(bikeId: string){
+        try{
+            const bikeRef = await this.db.collection("bikes").doc(bikeId);
+            const bikeSnap = await bikeRef.get();
+
+        if (!bikeSnap.exists) {
+            console.log("No such bike found!");
+            return null;
+        }
+
+        return { id: bikeSnap.id, ...bikeSnap.data() };
+        } catch(error){
+            console.error("Error fetching bike:", error);
+        }
+    }
 }

@@ -150,7 +150,7 @@
 .bikeItem.reserved {
     background-color: #f4f4f4;
     color: grey;
-    cursor: default;
+    cursor: not-allowed;
 }
 
 .bikeItem.available {
@@ -208,7 +208,7 @@
 .actionButton:disabled{
     background-color:#cbcbcb;
     color:#b8b6b6;
-    cursor:default;
+    cursor:not-allowed;
 }
 .reservation{
     position:absolute;
