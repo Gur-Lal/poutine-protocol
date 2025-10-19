@@ -1,16 +1,23 @@
-import {NextResponse, NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { FirestoreService } from "@/data/firestoreService";
 
-const service = new FirestoreService();
-
-export async function GET(req : NextRequest, {params}:{ params: {username: string}}) {
+export async function GET(
+    request: NextRequest,
+    context: { params: { username: string } }
+) {
     try {
-        //console.log(params);
+        const username = context.params.username;
 
-        const {username} = await params;
-        const result = await service.getReservationByUsername(username);
-        return NextResponse.json(result);
-    } catch  (e: any) {
-        return NextResponse.json({ok:false, error: e.message }, {status: 400});
+        console.log("Getting reservation for username:", username);
+
+        const firestoreService = new FirestoreService();
+        const reservation = await firestoreService.getReservationByUsername(username);
+
+        console.log("Reservation found:", reservation);
+
+        return NextResponse.json(reservation);
+    } catch (error) {
+        console.error("Error in getReservation API:", error);
+        return NextResponse.json(null);
     }
 }
