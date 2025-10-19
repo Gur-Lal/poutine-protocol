@@ -19,8 +19,10 @@ export default function DashboardPage() {
     const [openReservationMenu, setOpenReservationMenu] = useState(false);
     const [bikes, setBikes] = useState<Bike[]>([]);
     const [selectedBike, setSelectedBike] = useState<Bike>();
+    const [reservedBikeId, setReservedBikeId] = useState("");
     const [showReservations, setShowReservations] = useState(false);
     const [reservation, setReservation] = useState<Reservation>();
+    const [reservedBike, setReservedBike] = useState<Bike | null>(null);
 
     // Admin states
     const [userRole, setUserRole] = useState("");
@@ -39,10 +41,10 @@ export default function DashboardPage() {
                     const roleResponse = await axios.get(`/api/getUserRole/${user.uid}`);
                     setUserRole(roleResponse.data.role);
 
-                    const response = await axios.get(`/api/getDocuments/stations`);
+                    const response = await axios.get(`api/getDocuments/stations`);
                     setStations(response.data);
                 } catch (error) {
-                    console.log("Error fetching stations:", error);
+                    console.log("Error fetching stations: ", error);
                 }
             } else {
                 router.push("/login");
@@ -65,12 +67,37 @@ export default function DashboardPage() {
         return <p>Loading...</p>;
     }
 
+    const fetchStations = async () => {
+        try {
+            const response = await axios.get(`api/getDocuments/stations`);
+            setStations(response.data);
+        } catch (error) {
+            console.log("Error fetching stations: ", error);
+        }
+    };
+
+    const refreshStationAndBikes = async (stationId?: string) => {
+        await fetchStations();
+        if (stationId) {
+            await fetchBikesByStation(stationId);
+        }
+    }
+
     const fetchBikesByStation = async (stationId: string) => {
         try {
             const response = await axios.get(`/api/getBikes/${stationId}`);
             setBikes(response.data);
         } catch (error) {
             console.log("Error fetching bikes:", error);
+        }
+    }
+
+    const fetchBikeById = async (bikeId: string) => {
+        try {
+            const response = await axios.get(`/api/getBikeById/${bikeId}`);
+            setReservedBike(response.data);
+        } catch (error) {
+            console.log("Error fetching bike: ", error);
         }
     }
 
@@ -103,7 +130,11 @@ export default function DashboardPage() {
                 stationName: stationName,
                 bikeId: bikeId
             });
-
+            if (response.data.ok) {
+                setReservedBikeId(bikeId);
+                await fetchBikeById(bikeId);
+                await refreshStationAndBikes(selectedStation?.id);
+            }
         } catch (error) {
             console.log("Error reserving bike:", error);
         } finally {
@@ -124,8 +155,12 @@ export default function DashboardPage() {
                     startTime: startTime,
                     reservationExpiry: reservationExpiry
                 });
+                setReservedBikeId(data.bikeId);
+                await fetchBikeById(data.bikeId);
             } else {
                 setReservation(undefined);
+                setReservedBikeId("");
+                setReservedBike(null);
             }
         } catch (error) {
             console.log("Error fetching reservations.", error);
@@ -145,6 +180,8 @@ export default function DashboardPage() {
                 alert("Bike unlocked successfully!");
                 setShowReservations(false);
                 setReservation(undefined);
+
+                await refreshStationAndBikes(selectedStation?.id);
             } else {
                 alert("Failed to unlock bike: " + response.data.error);
             }
@@ -166,6 +203,9 @@ export default function DashboardPage() {
                 alert("Bike returned successfully!");
                 setShowReservations(false);
                 setReservation(undefined);
+                setReservedBikeId("");
+                setReservedBike(null);
+                await refreshStationAndBikes(stationId);
             } else {
                 alert("Failed to return bike: " + response.data.error);
             }
@@ -176,15 +216,6 @@ export default function DashboardPage() {
     }
 
     // Admin functions
-    const fetchStations = async () => {
-        try {
-            const response = await axios.get(`/api/getDocuments/stations`);
-            setStations(response.data);
-        } catch (error) {
-            console.log("Error fetching stations:", error);
-        }
-    };
-
     const handleMoveBike = async () => {
         if (!selectedBike || !selectedStation || !destinationStationId) {
             alert("Please select a bike and destination station");
@@ -302,7 +333,7 @@ export default function DashboardPage() {
                                 <p className="status" id={station.status === "empty" ? "empty" : station.status === "occupied" ? "occupied" : station.status === "full" ? "full" : "outOfService"}>{station.status.toUpperCase()}</p>
 
                                 <p className="capacity">Total Capacity: {station.capacity}</p>
-                                <p className="bikesAvailable">Bikes Available: {station.numberOfBikes}</p>
+                                <p className="bikesAvailable">Bikes: {station.numberOfBikes}</p>
 
                                 {userRole === "admin" && (
                                     <button
@@ -330,7 +361,7 @@ export default function DashboardPage() {
                         <div className="background"></div>
                         <div className="reservationMenu">
                             <FaXmark className="xButton" onClick={() => handleCloseReservationMenu()} />
-                            <p className="title">{userRole === "admin" ? "MANAGE BIKES" : "RESERVE A BIKE"}</p>
+                            <p className="title">{userRole === "admin" ? "MANAGE BIKES" : "RESERVE or RETURN"}</p>
                             <p>{selectedStation.name.toUpperCase()}</p>
                             <div className="bikeList">
                                 {
@@ -354,7 +385,7 @@ export default function DashboardPage() {
                             </div>
 
                             {userRole === "admin" ? (
-                                <button className="reserveButton" onClick={() => {
+                                <button className="actionButton" onClick={() => {
                                     if (!selectedBike) {
                                         alert("Please select a bike");
                                         return;
@@ -363,14 +394,21 @@ export default function DashboardPage() {
                                 }}> MOVE BIKE
                                 </button>
                             ) : (
-                                <button className="reserveButton" onClick={() => {
-                                    if (!selectedBike) {
-                                        alert("Please select a bike");
-                                        return;
-                                    }
-                                    reserveBike(username, selectedStation!.name, selectedBike.id);
-                                }}> RESERVE
-                                </button>
+                                <div className="buttons">
+                                    <button className="actionButton" onClick={() => {
+                                        if (!selectedBike) {
+                                            alert("Please select a bike");
+                                            return;
+                                        }
+                                        reserveBike(username, selectedStation!.name, selectedBike.id);
+                                    }}
+                                        disabled={reservedBikeId !== ""}> RESERVE
+                                    </button>
+                                    <button className="actionButton" onClick={() => {
+                                        returnBike(username, reservedBikeId, selectedStation.id);
+                                    }} disabled={!(reservedBikeId !== "")}> RETURN
+                                    </button>
+                                </div>
                             )}
                         </div>
                     </div>
@@ -403,7 +441,7 @@ export default function DashboardPage() {
                             }
                         </select>
 
-                        <button className="reserveButton" onClick={handleMoveBike}>
+                        <button className="actionButton" onClick={handleMoveBike}>
                             MOVE BIKE
                         </button>
                     </div>
@@ -418,12 +456,11 @@ export default function DashboardPage() {
                             <FaXmark className="xButton" onClick={() => setShowReservations(false)} />
                             {!reservation ? (<p>No active reservations</p>) : (
                                 <div>
-
-                                    <p>Reservation</p>
-                                    <p>{reservation.status}</p>
+                                    <p className="title">Reservation</p>
+                                    <p className="reservationStatus">{reservation.status.toUpperCase()}</p>
                                     <p>Start Time: {reservation.startTime.toLocaleString()}</p>
-                                    <p>Expires: {reservation.reservationExpiry.toLocaleString()}</p>
-                                    <button onClick={() => unlockBike(username, reservation.bikeId)}> Unlock Bike</button>
+                                    <p style={{ marginBottom: "20px" }}>Expires: {reservation.reservationExpiry.toLocaleString()}</p>
+                                    <button className="actionButton" onClick={() => unlockBike(username, reservation.bikeId)} disabled={reservedBike?.status === "on_trip"}> Unlock Bike</button>
                                 </div>
                             )}
                         </div>
