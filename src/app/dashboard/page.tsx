@@ -31,7 +31,14 @@ export default function DashboardPage() {
     const [destinationStationId, setDestinationStationId] = useState("");
 
     // Tab state 
-    const [currentTab, setCurrentTab] = useState<"stations" | "trips">("stations");
+    const [currentTab, setCurrentTab] = useState<"stations" | "trips" | "billing">("stations");
+
+    // Fake billing data
+    const fakeBillings = [
+        { id: 1, date: "2025-10-01", amount: 15.5, description: "Bike rental - Station A" },
+        { id: 2, date: "2025-10-05", amount: 7.0, description: "Bike rental - Station B" },
+        { id: 3, date: "2025-10-12", amount: 20.0, description: "Late return fee" },
+    ];
 
     const router = useRouter();
 
@@ -324,6 +331,13 @@ export default function DashboardPage() {
                         Stations & Bikes
                     </div>
 
+                    <div
+                        className={`navOption ${currentTab === "billing" ? "activeTab" : ""}`}
+                        onClick={() => setCurrentTab("billing")}
+                    >
+                        Billing
+                    </div>
+
                     {userRole !== "admin" && (
                         <div className="navOption" onClick={() => handleViewReservation(username)}>
                         View Reservation
@@ -377,6 +391,20 @@ export default function DashboardPage() {
                             </div>
                             ))}
                         </div>
+                    </div>
+                )}
+
+                {currentTab === "billing" && (
+                    <div className="billingTab">
+                        <h2>Billing History</h2>
+                        {fakeBillings.map((bill) => (
+                            <div key={bill.id} className="billingItem">
+                                <p><strong>Date:</strong> {bill.date}</p>
+                                <p><strong>Amount:</strong> ${bill.amount.toFixed(2)}</p>
+                                <p><strong>Description:</strong> {bill.description}</p>
+                                <hr />
+                            </div>
+                        ))}
                     </div>
                 )}
 
