@@ -8,6 +8,7 @@ import { DockStation } from "@/domain/models/DockStation";
 import { Bike } from "@/domain/models/Bike";
 import { FaXmark } from "react-icons/fa6";
 import { Reservation } from "@/domain/models/Reservation";
+import TripHistoryPanel from "@/UI/components/TripHistoryPanel";
 import axios from "axios";
 import "./dashboard.css";
 
@@ -28,6 +29,16 @@ export default function DashboardPage() {
     const [userRole, setUserRole] = useState("");
     const [showMoveModal, setShowMoveModal] = useState(false);
     const [destinationStationId, setDestinationStationId] = useState("");
+
+    // Tab state 
+    const [currentTab, setCurrentTab] = useState<"stations" | "trips" | "billing">("stations");
+
+    // Fake billing data
+    const fakeBillings = [
+        { id: 1, date: "2025-10-01", amount: 15.5, description: "Bike rental - Station A" },
+        { id: 2, date: "2025-10-05", amount: 7.0, description: "Bike rental - Station B" },
+        { id: 3, date: "2025-10-12", amount: 20.0, description: "Late return fee" },
+    ];
 
     const router = useRouter();
 
@@ -306,14 +317,35 @@ export default function DashboardPage() {
         <main className="dashboardContainer">
             <div className="header">
                 <div className="navBar">
+                    <div
+                        className={`navOption ${currentTab === "trips" ? "activeTab" : ""}`}
+                        onClick={() => setCurrentTab("trips")}
+                    >
+                        Trip History {userRole === "admin" ? "(All Users)" : ""}
+                    </div>
+
+                    <div
+                        className={`navOption ${currentTab === "stations" ? "activeTab" : ""}`}
+                        onClick={() => setCurrentTab("stations")}
+                    >
+                        Stations & Bikes
+                    </div>
+
+                    <div
+                        className={`navOption ${currentTab === "billing" ? "activeTab" : ""}`}
+                        onClick={() => setCurrentTab("billing")}
+                    >
+                        Billing
+                    </div>
+
                     {userRole !== "admin" && (
                         <div className="navOption" onClick={() => handleViewReservation(username)}>
-                            View Reservation
+                        View Reservation
                         </div>
                     )}
                     {userRole === "admin" && (
                         <div className="navOption adminOption" onClick={handleResetSystem}>
-                            Reset System
+                        Reset System
                         </div>
                     )}
                 </div>
@@ -323,36 +355,64 @@ export default function DashboardPage() {
                 )}
             </div>
             <div className="dashboardArea">
-                <div className="stationList">
-                    <p className="title">SELECT A STATION</p>
-                    {
-                        stations.map((station, index) => (
+                {currentTab === "stations" && (
+                    <div className="stationsTab">
+                        <div className="stationList">
+                            {stations.map((station, index) => (
                             <div className="stationItem" key={index} onClick={() => handleStationClick(station)}>
                                 <p className="title">{station.name.toUpperCase() || "UNNAMED STATION"}</p>
                                 <p className="address">{station.address}</p>
-                                <p className="status" id={station.status === "empty" ? "empty" : station.status === "occupied" ? "occupied" : station.status === "full" ? "full" : "outOfService"}>{station.status.toUpperCase()}</p>
+                                <p
+                                className="status"
+                                id={
+                                    station.status === "empty"
+                                    ? "empty"
+                                    : station.status === "occupied"
+                                    ? "occupied"
+                                    : station.status === "full"
+                                    ? "full"
+                                    : "outOfService"
+                                }
+                                >
+                                {station.status.toUpperCase()}
+                                </p>
 
                                 <p className="capacity">Total Capacity: {station.capacity}</p>
                                 <p className="bikesAvailable">Bikes: {station.numberOfBikes}</p>
 
                                 {userRole === "admin" && (
-                                    <button
-                                        className="adminStationBtn"
-                                        onClick={(e) => handleSetStationService(station, e)}
-                                    >
-                                        {station.status === "out_of_service" ? "Restore Service" : "Mark Out of Service"}
-                                    </button>
+                                <button
+                                    className="adminStationBtn"
+                                    onClick={(e) => handleSetStationService(station, e)}
+                                >
+                                    {station.status === "out_of_service" ? "Restore Service" : "Mark Out of Service"}
+                                </button>
                                 )}
                             </div>
-                        ))
-                    }
-                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
 
-                <div className="map">
-                    {
-                        //map goes here
-                    }
-                </div>
+                {currentTab === "billing" && (
+                    <div className="billingTab">
+                        <h2>Billing History</h2>
+                        {fakeBillings.map((bill) => (
+                            <div key={bill.id} className="billingItem">
+                                <p><strong>Date:</strong> {bill.date}</p>
+                                <p><strong>Amount:</strong> ${bill.amount.toFixed(2)}</p>
+                                <p><strong>Description:</strong> {bill.description}</p>
+                                <hr />
+                            </div>
+                        ))}
+                    </div>
+                )}
+
+                {currentTab === "trips" && (
+                    <div className="tripsTab">
+                    <TripHistoryPanel username={username} userRole={userRole} />
+                    </div>
+                )}
             </div>
 
             {
