@@ -27,8 +27,10 @@ export default function TripHistoryPanel({ username, userRole }: TripHistoryPane
       try {
         setLoading(true);
         let url = "/api/trips";
-        if (userRole !== "admin") {
-          url += `/${username}`;
+        if (userRole === "admin") {
+          url = "/api/trips/all";
+        } else {
+          url = `/api/trips/${username}`;
         }
         const res = await axios.get(url);
         if (res.data.ok) {

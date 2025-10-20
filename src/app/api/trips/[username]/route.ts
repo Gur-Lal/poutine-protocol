@@ -6,23 +6,19 @@ const tripService = new TripService(adminDb);
 
 export async function GET(
   _req: Request,
-  context: { params?: Promise<{ username?: string }> }
+  context: { params: Promise<{ username: string }> }
 ) {
   try {
-    const { username } = context.params ? await context.params : {};
+    const { username } = await context.params;
 
-    let trips;
-    if (username) {
-      // normal user: only their trips
-      trips = await tripService.getUserTrips(username);
-    } else {
-      // admin: all trips
-      trips = await tripService.getAllTrips();
+    if (!username) {
+      return NextResponse.json({ ok: false, error: "Username is required" }, { status: 400 });
     }
 
+    const trips = await tripService.getUserTrips(username);
     return NextResponse.json({ ok: true, trips });
   } catch (error: any) {
-    console.error("Error fetching trips:", error);
+    console.error("Error fetching user trips:", error);
     return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
   }
 }
