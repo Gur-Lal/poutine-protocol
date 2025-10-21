@@ -112,6 +112,14 @@ export class BikeReservationService {
             };
         });
 
+        // Check if station became empty after reservation
+        if (result.stationSnapshot.status === "empty") {
+            await this.createAdminNotification(
+                "Station Empty",
+                `${result.stationSnapshot.name} is now empty after reservation`
+            );
+        }
+
         return {
             ok: true,
             reservationId: result.reservationId,
@@ -298,9 +306,46 @@ export class BikeReservationService {
             }
         });
 
+        // Check station status after return
+        const updatedStationSnap = await stationRef.get();
+        const updatedStation = updatedStationSnap.data() as DockStation;
+
+        if (updatedStation.status === "full") {
+            await this.createAdminNotification(
+                "Station Full",
+                `${updatedStation.name} is now full (${updatedStation.numberOfBikes}/${updatedStation.capacity})`
+            );
+        }
+
         return {
             ok: true,
             message: "Bike returned successfully, and dock & reservation updated.",
         };
+    }
+
+    private async createAdminNotification(title: string, message: string) {
+        try {
+            const usersSnapshot = await this.db
+                .collection("users")
+                .where("role", "==", "admin")
+                .get();
+
+            const batch = this.db.batch();
+            
+            usersSnapshot.docs.forEach((doc) => {
+                const notificationRef = this.db.collection("notifications").doc();
+                batch.set(notificationRef, {
+                    userId: doc.id,
+                    title: title,
+                    message: message,
+                    date: Timestamp.now(),
+                    isAdminNotification: true,
+                });
+            });
+
+            await batch.commit();
+        } catch (error) {
+            console.error("Error creating admin notification:", error);
+        }
     }
 }

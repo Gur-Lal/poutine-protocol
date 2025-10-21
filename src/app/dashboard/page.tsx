@@ -9,6 +9,7 @@ import { Bike } from "@/domain/models/Bike";
 import { FaXmark } from "react-icons/fa6";
 import { Reservation } from "@/domain/models/Reservation";
 import TripHistoryPanel from "@/UI/components/TripHistoryPanel";
+import NotificationButton from "@/UI/components/notification-button";
 import axios from "axios";
 import "./dashboard.css";
 
@@ -350,9 +351,12 @@ export default function DashboardPage() {
                     )}
                 </div>
 
-                {userRole === "admin" && (
-                    <div className="adminBadge">ADMIN</div>
-                )}
+                 <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                    <NotificationButton />
+                    {userRole === "admin" && (
+                        <div className="adminBadge">ADMIN</div>
+                    )}
+                </div>
             </div>
             <div className="dashboardArea">
                 {currentTab === "stations" && (

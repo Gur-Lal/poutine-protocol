@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { Bell, X } from "lucide-react";
-import { Card, CardContent } from "@/UI/components/card";
 import { db, auth } from "@/data/firebase";
 import {
   collection,
@@ -15,6 +14,7 @@ import {
   Timestamp,
 } from "firebase/firestore";
 import { onAuthStateChanged, User } from "firebase/auth";
+import "./notifications.css";
 
 type Notification = {
   id: string;
@@ -68,46 +68,46 @@ export default function NotificationsPage() {
 
   if (loading) {
     return (
-      <main>
+      <div className="loadingState">
         Loading notifications...
-      </main>
+      </div>
     );
   }
 
   if (!user) {
     return (
-      <main>
-        <p>
-          Please log in to view your notifications.
-        </p>
-      </main>
+      <div className="loginPrompt">
+        Please log in to view your notifications.
+      </div>
     );
   }
 
   return (
-    <main>
-      <div>
+    <div className="notificationsContainer">
+      <div className="notificationsHeader">
         <h1>
-          <Bell/> Notifications
+          <Bell /> Notifications
         </h1>
       </div>
 
-      {notifications.length === 0 ? (
-        <p>
-          You have no notifications
-        </p>
-      ) : (
-        <div>
-          {notifications.map((notification) => (
-            <NotificationCard
-              key={notification.id}
-              {...notification}
-              onDismiss={() => dismissNotification(notification.id)}
-            />
-          ))}
-        </div>
-      )}
-    </main>
+      <div className="notificationsArea">
+        {notifications.length === 0 ? (
+          <div className="emptyState">
+            You have no notifications
+          </div>
+        ) : (
+          <div className="notificationsList">
+            {notifications.map((notification) => (
+              <NotificationCard
+                key={notification.id}
+                {...notification}
+                onDismiss={() => dismissNotification(notification.id)}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -118,21 +118,20 @@ function NotificationCard({
   onDismiss,
 }: Notification & { onDismiss: () => void }) {
   return (
-    <Card>
-      <CardContent>
-        <div>
-          <h2>{title}</h2>
-          <p>{message}</p>
-          <p>{formatDate(date)}</p>
-        </div>
-        <button
-          onClick={onDismiss}
-          title="Delete notification"
-        >
-          <X/>
-        </button>
-      </CardContent>
-    </Card>
+    <div className="notificationCard">
+      <div className="notificationContent">
+        <h2 className="notificationTitle">{title}</h2>
+        <p className="notificationMessage">{message}</p>
+        <p className="notificationDate">{formatDate(date)}</p>
+      </div>
+      <button
+        onClick={onDismiss}
+        className="dismissButton"
+        title="Delete notification"
+      >
+        <X />
+      </button>
+    </div>
   );
 }
 
