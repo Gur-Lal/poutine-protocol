@@ -1,6 +1,7 @@
-import { Firestore, Transaction } from "firebase-admin/firestore";
+import { Firestore, Transaction, Timestamp } from "firebase-admin/firestore";
 import { Bike, BikeStatus } from "../models/Bike";
 import { DockStation, StationStatus } from "../models/DockStation";
+
 
 export class AdminService {
     private db: Firestore;
@@ -155,7 +156,33 @@ export class AdminService {
                 message: "Bike moved successfully",
             };
         });
+        
+        // Check destination station status after move
+        const updatedDestDoc = await destStationRef.get();
+        const updatedDestStation = updatedDestDoc.data() as DockStation;
 
+        if (updatedDestStation.status === "full") {
+            await this.createAdminNotification(
+                "Station Full",
+                `${updatedDestStation.name} is now full (${updatedDestStation.numberOfBikes}/${updatedDestStation.capacity})`
+            );
+        } else if (updatedDestStation.status === "empty") {
+            await this.createAdminNotification(
+                "Station Empty",
+                `${updatedDestStation.name} is now empty`
+            );
+        }
+
+        // Check source station status after move
+        const updatedSourceDoc = await sourceStationRef.get();
+        const updatedSourceStation = updatedSourceDoc.data() as DockStation;
+
+        if (updatedSourceStation.status === "empty") {
+            await this.createAdminNotification(
+                "Station Empty",
+                `${updatedSourceStation.name} is now empty after bike removal`
+            );
+        }
         return result;
     }
 
@@ -407,5 +434,33 @@ export class AdminService {
             ok: true,
             message: "System reset to initial state",
         };
+    }
+
+    private async createAdminNotification(title: string, message: string) {
+        try {
+            // Get all admin users
+            const usersSnapshot = await this.db
+                .collection("users")
+                .where("role", "==", "admin")
+                .get();
+
+            // Create a notification for each admin
+            const batch = this.db.batch();
+            
+            usersSnapshot.docs.forEach((doc) => {
+                const notificationRef = this.db.collection("notifications").doc();
+                batch.set(notificationRef, {
+                    userId: doc.id,
+                    title: title,
+                    message: message,
+                    date: Timestamp.now(),
+                    isAdminNotification: true,
+                });
+            });
+
+            await batch.commit();
+        } catch (error) {
+            console.error("Error creating admin notification:", error);
+        }
     }
 }
