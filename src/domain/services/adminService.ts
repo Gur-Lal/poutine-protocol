@@ -1,4 +1,4 @@
-import { Firestore, Transaction, Timestamp  } from "firebase-admin/firestore";
+import { Firestore, Transaction, Timestamp } from "firebase-admin/firestore";
 import { Bike, BikeStatus } from "../models/Bike";
 import { DockStation, StationStatus } from "../models/DockStation";
 
