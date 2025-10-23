@@ -18,6 +18,8 @@ export async function GET(
         return NextResponse.json(reservation);
     } catch (error) {
         console.error("Error in getReservation API:", error);
-        return NextResponse.json(null);
+        return NextResponse.json(
+            { ok: false, error: error instanceof Error ? error.message : "Unknown error" }, { status: 500 }
+        );
     }
 }

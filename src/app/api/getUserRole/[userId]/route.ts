@@ -20,6 +20,8 @@ export async function GET(
         return NextResponse.json({ role });
     } catch (error) {
         console.error("Error fetching user role:", error);
-        return NextResponse.json({ role: "rider" });
+        return NextResponse.json(
+            { ok: false, error: error instanceof Error ? error.message : "Unknown error" }, { status: 500 }
+        );
     }
 }
