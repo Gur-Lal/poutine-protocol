@@ -1,8 +1,9 @@
 import { Firestore, Transaction, Timestamp, UpdateData } from "firebase-admin/firestore";
-
 import { Reservation } from "../models/Reservation";
 import { Bike, BikeStatus } from "../models/Bike";
 import { DockStation, StationStatus } from "../models/DockStation";
+import { createNotification } from "@/data/notificationService";
+import { createAdminNotification } from "@/domain/services/adminService";
 
 export class BikeReservationService {
     constructor(private db: Firestore) { }
@@ -112,6 +113,15 @@ export class BikeReservationService {
             };
         });
 
+        // Check if station became empty after reservation
+        if (result.stationSnapshot.status === "empty") {
+            await createAdminNotification(
+                this.db,
+                "Station Empty",
+                `${result.stationSnapshot.name} is now empty after reservation`
+            );
+        }
+
         return {
             ok: true,
             reservationId: result.reservationId,
@@ -165,7 +175,7 @@ export class BikeReservationService {
                     status: "available"
                 });
             });
-
+            createNotification(username, "Reservation expired", "The bike you had reserved is now available.");
             return {
                 ok: false,
                 message: "Reservation expired, bike is now available.",
@@ -297,6 +307,18 @@ export class BikeReservationService {
                 tx.update(resDoc, { status: "completed" });
             }
         });
+
+        // Check station status after return
+        const updatedStationSnap = await stationRef.get();
+        const updatedStation = updatedStationSnap.data() as DockStation;
+
+        if (updatedStation.status === "full") {
+            await createAdminNotification(
+                this.db,
+                "Station Full",
+                `${updatedStation.name} is now full (${updatedStation.numberOfBikes}/${updatedStation.capacity})`
+            );
+        }
 
         return {
             ok: true,

@@ -5,11 +5,12 @@ const service = new FirestoreService();
 
 export async function GET(req : NextRequest, {params}:{ params: {bikeId: string}}) {
     try {
-
         const {bikeId} = await params;
         const result = await service.getBikeById(bikeId);
         return NextResponse.json(result);
-    } catch  (e: any) {
-        return NextResponse.json({ok:false, error: e.message }, {status: 400});
+    } catch (error) {
+        return NextResponse.json(
+            { ok: false, error: error instanceof Error ? error.message : "Unknown error" }, { status: 500 }
+        );
     }
 }
