@@ -8,6 +8,7 @@ import { DockStation } from "@/domain/models/DockStation";
 import { Bike } from "@/domain/models/Bike";
 import { FaXmark } from "react-icons/fa6";
 import { Reservation } from "@/domain/models/Reservation";
+import { createNotification } from "@/data/notificationService";
 import TripHistoryPanel from "@/UI/components/TripHistoryPanel";
 import NotificationButton from "@/UI/components/notification-button";
 import axios from "axios";
@@ -213,6 +214,7 @@ export default function DashboardPage() {
 
             if (response.data.ok) {
                 alert("Bike returned successfully!");
+                createNotification(username, "Bike returned!", "You successfully returned your bike.");
                 setShowReservations(false);
                 setReservation(undefined);
                 setReservedBikeId("");
