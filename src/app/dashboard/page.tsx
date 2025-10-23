@@ -362,7 +362,7 @@ export default function DashboardPage() {
             </div>
             <div className="dashboardArea">
                 {currentTab === "stations" && (
-                    <div className="stationsTab">
+                    <div>
                         <div className="stationList">
                             {stations.map((station, index) => (
                             <div className="stationItem" key={index} onClick={() => handleStationClick(station)}>
@@ -401,7 +401,7 @@ export default function DashboardPage() {
                 )}
 
                 {currentTab === "billing" && (
-                    <div className="billingTab">
+                    <div>
                         <h2>Billing History</h2>
                         {fakeBillings.map((bill) => (
                             <div key={bill.id} className="billingItem">
@@ -415,9 +415,7 @@ export default function DashboardPage() {
                 )}
 
                 {currentTab === "trips" && (
-                    <div className="tripsTab">
                     <TripHistoryPanel username={username} userRole={userRole} />
-                    </div>
                 )}
             </div>
 

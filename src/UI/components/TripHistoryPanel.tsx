@@ -65,7 +65,7 @@ export default function TripHistoryPanel({ username, userRole }: TripHistoryPane
       <h2>Trip History {userRole === "admin" ? "(All Users)" : ""}</h2>
       <ul>
         {trips.map((trip) => (
-          <li key={trip.id} className="tripItem">
+          <div key={trip.id} className="tripItem">
             <p><strong>Bike:</strong> {trip.bikeId}</p>
             <p><strong>From:</strong> {trip.startStationId || "N/A"} | <strong>To:</strong> {trip.endStationId || "N/A"}</p>
             <p><strong>Status:</strong> {trip.status.toUpperCase()}</p>
@@ -79,7 +79,7 @@ export default function TripHistoryPanel({ username, userRole }: TripHistoryPane
                 {((new Date(trip.endTime).getTime() - new Date(trip.startTime).getTime()) / 60000).toFixed(1)} min
               </p>
             )}
-          </li>
+          </div>
         ))}
       </ul>
     </div>
