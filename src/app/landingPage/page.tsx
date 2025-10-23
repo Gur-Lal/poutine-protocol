@@ -97,12 +97,6 @@ export default function LandingPage() {
                         ))
                     }
                 </div>
-
-                <div className="map">
-                    {
-                        //map goes here in the future
-                    }
-                </div>
             </div>
 
             {
