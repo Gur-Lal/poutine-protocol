@@ -1,74 +1,93 @@
-.landingHeader{
+.landingContainer {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+}
+
+.landingHeader {
     display: flex;
     flex-direction: row;
     font-family: 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
-    padding: 20px;
-    justify-content: space-between; 
+    padding: 0 20px;
+    justify-content: space-between;
     align-items: center;
     width: 100%;
+    height: 60px;
 }
+
 .landingHeader p {
-    margin:0;
-    font-size:18px;
+    margin: 0;
+    font-size: 18px;
 }
-.navBar{
-    display:flex;
-    justify-content: center;
+
+.buttonMenu {
+    display: flex;
+    flex-direction: row;
+    margin-left: auto;
+    gap: 5px;
+}
+
+.loginButton {
+    background-color: transparent;
+    font-family: 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
+    padding: 10px;
+    border: 1px solid white;
+    border-radius: 15px;
+    font-size: 15px;
+}
+
+.loginButton:hover {
+    cursor: pointer;
+    box-shadow: 0 0 10px 5px rgba(255, 255, 255, 0.316);
+    transition: 0.2s ease-in-out;
+}
+
+.registerButton {
+    border: none;
+    color: black;
+    background-color: rgb(255, 255, 255);
+    font-family: 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
+    padding: 10px;
+    border-radius: 15px;
+    font-size: 15px;
+}
+
+.registerButton:hover {
+    cursor: pointer;
+    box-shadow: 0 0 10px 5px rgba(255, 255, 255, 0.316);
+    transition: 0.2s ease-in-out;
+}
+
+.viewMenu {
+    position: absolute;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    top: 50%;
+    background-color: white;
+    color: black;
+    height: 500px;
+    width: 300px;
+    border-radius: 20px;
+    padding: 20px;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
     align-items: center;
-    border-radius:15px;
-    box-shadow: 0 0 10px -5px inset rgb(183, 183, 183);
-    position:absolute;
-    left:50%;
-    transform:translateX(-50%);
-    padding: 0px 20px;
+    box-shadow: 0 0 -8px 10px rgba(70, 70, 70, 0.686);
 }
 
-.navOption{
-    font-size:15px;
-    padding:10px;
-    border-radius:15px;
-    margin:0 10px;
+.viewMenu .title {
+    font-size: 24px;
+    font-weight: bold;
+    text-align: center;
+    margin: 20px 0 10px 0;
 }
 
-.navOption:hover{
-    cursor:pointer;
-    transform: scale(1.1);
-    transition:0.3s ease-in-out;
-}
-.buttonMenu{
-    display:flex;
-    flex-direction:row;
-    margin-left:auto;
-    gap:5px;
-}
-
-.loginButton{
-    background-color:transparent;
-    font-family:'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
-    padding:10px;
-    border:1px solid white;
-    border-radius:15px;
-    font-size:15px;
-}
-
-.loginButton:hover{
-    cursor:pointer;
-    box-shadow:0 0 10px 5px rgba(255, 255, 255, 0.316);
-    transition:0.2s ease-in-out;
-}
-
-.registerButton{
-    border:none;
-    color:black;
-    background-color:rgb(255, 255, 255);
-    font-family:'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
-    padding:10px;
-    border-radius:15px;
-    font-size:15px;
-}
-
-.registerButton:hover{
-    cursor:pointer;
-    box-shadow:0 0 10px 5px rgba(255, 255, 255, 0.316);
-    transition:0.2s ease-in-out;
+.loginPrompt {
+    margin-top: auto;
+    padding: 15px;
+    text-align: center;
+    font-style: italic;
+    color: #666;
 }
