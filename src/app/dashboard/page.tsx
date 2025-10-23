@@ -8,6 +8,7 @@ import { DockStation } from "@/domain/models/DockStation";
 import { Bike } from "@/domain/models/Bike";
 import { FaXmark } from "react-icons/fa6";
 import { Reservation } from "@/domain/models/Reservation";
+import { createNotification } from "@/data/notificationService";
 import TripHistoryPanel from "@/UI/components/TripHistoryPanel";
 import NotificationButton from "@/UI/components/notification-button";
 import axios from "axios";
@@ -213,6 +214,7 @@ export default function DashboardPage() {
 
             if (response.data.ok) {
                 alert("Bike returned successfully!");
+                createNotification(username, "Bike returned!", "You successfully returned your bike.");
                 setShowReservations(false);
                 setReservation(undefined);
                 setReservedBikeId("");
@@ -360,7 +362,7 @@ export default function DashboardPage() {
             </div>
             <div className="dashboardArea">
                 {currentTab === "stations" && (
-                    <div className="stationsTab">
+                    <div>
                         <div className="stationList">
                             {stations.map((station, index) => (
                             <div className="stationItem" key={index} onClick={() => handleStationClick(station)}>
@@ -399,7 +401,7 @@ export default function DashboardPage() {
                 )}
 
                 {currentTab === "billing" && (
-                    <div className="billingTab">
+                    <div>
                         <h2>Billing History</h2>
                         {fakeBillings.map((bill) => (
                             <div key={bill.id} className="billingItem">
@@ -413,9 +415,7 @@ export default function DashboardPage() {
                 )}
 
                 {currentTab === "trips" && (
-                    <div className="tripsTab">
                     <TripHistoryPanel username={username} userRole={userRole} />
-                    </div>
                 )}
             </div>
 

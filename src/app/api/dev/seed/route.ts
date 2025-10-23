@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
-import { adminDb } from "@/data/firebaseAdmin"; // your admin SDK init
-
-type BikeStatus = "available" | "reserved" | "on_trip" | "maintenance";
+import { adminDb } from "@/data/firebaseAdmin";
+import { BikeStatus } from "@/domain/models/Bike";
 
 export async function POST(req: Request) {
     try {
@@ -58,7 +57,9 @@ export async function POST(req: Request) {
         bikes: createdBikeIds.map((id, idx) => ({ id, label: `bike-${idx + 1}` })),
         
         });
-    } catch (e: any) {
-        return NextResponse.json({ ok: false, error: e.message }, { status: 500 });
+    } catch (error) {
+        return NextResponse.json(
+            { ok: false, error: error instanceof Error ? error.message : "Unknown error" }, { status: 500 }
+        );
     }
 }
