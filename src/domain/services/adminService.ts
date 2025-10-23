@@ -1,7 +1,6 @@
-import { Firestore, Transaction } from "firebase-admin/firestore";
+import { Firestore, Transaction, Timestamp  } from "firebase-admin/firestore";
 import { Bike, BikeStatus } from "../models/Bike";
 import { DockStation, StationStatus } from "../models/DockStation";
-import { createAdminNotification } from "@/data/notificationService";
 
 export class AdminService {
     constructor(private db: Firestore) { }
@@ -159,11 +158,13 @@ export class AdminService {
 
         if (updatedDestStation.status === "full") {
             await createAdminNotification(
+                this.db,
                 "Station Full",
                 `${updatedDestStation.name} is now full (${updatedDestStation.numberOfBikes}/${updatedDestStation.capacity})`
             );
         } else if (updatedDestStation.status === "empty") {
             await createAdminNotification(
+                this.db,
                 "Station Empty",
                 `${updatedDestStation.name} is now empty`
             );
@@ -175,6 +176,7 @@ export class AdminService {
 
         if (updatedSourceStation.status === "empty") {
             await createAdminNotification(
+                this.db,
                 "Station Empty",
                 `${updatedSourceStation.name} is now empty after bike removal`
             );
@@ -430,5 +432,22 @@ export class AdminService {
             ok: true,
             message: "System reset to initial state",
         };
+    }
+}
+
+export async function createAdminNotification(adminDb: Firestore,title: string, message: string) {
+    try {
+        const notificationsRef = adminDb.collection("notifications");
+
+        await notificationsRef.add({
+            title: title,
+            message: message,
+            date: Timestamp.now(),
+            isAdminNotification: true,
+        });
+
+        console.log("Admin notification sent successfully");
+    } catch (error) {
+        console.error("Error creating admin notification:", error);
     }
 }

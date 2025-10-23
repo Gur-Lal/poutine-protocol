@@ -2,7 +2,8 @@ import { Firestore, Transaction, Timestamp, UpdateData } from "firebase-admin/fi
 import { Reservation } from "../models/Reservation";
 import { Bike, BikeStatus } from "../models/Bike";
 import { DockStation, StationStatus } from "../models/DockStation";
-import { createAdminNotification, createNotification } from "@/data/notificationService";
+import { createNotification } from "@/data/notificationService";
+import { createAdminNotification } from "@/domain/services/adminService";
 
 export class BikeReservationService {
     constructor(private db: Firestore) { }
@@ -115,6 +116,7 @@ export class BikeReservationService {
         // Check if station became empty after reservation
         if (result.stationSnapshot.status === "empty") {
             await createAdminNotification(
+                this.db,
                 "Station Empty",
                 `${result.stationSnapshot.name} is now empty after reservation`
             );
@@ -312,6 +314,7 @@ export class BikeReservationService {
 
         if (updatedStation.status === "full") {
             await createAdminNotification(
+                this.db,
                 "Station Full",
                 `${updatedStation.name} is now full (${updatedStation.numberOfBikes}/${updatedStation.capacity})`
             );
