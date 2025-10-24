@@ -3,7 +3,7 @@ import { FirestoreService } from "@/data/firestoreService";
 
 export async function GET(
     request: NextRequest,
-    context: { params: { username: string } }
+    context: { params: Promise<{ username: string }> }
 ) {
     try {
         const { username } = await context.params;

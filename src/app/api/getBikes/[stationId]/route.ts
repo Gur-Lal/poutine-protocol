@@ -3,7 +3,7 @@ import { FirestoreService } from "@/data/firestoreService";
 
 const service = new FirestoreService();
 
-export async function GET(req: NextRequest, { params }: { params: { stationId: string } }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ stationId: string }> }) {
     try {
         const { stationId } = await params;
         const result = await service.getBikesByStationId(stationId);
