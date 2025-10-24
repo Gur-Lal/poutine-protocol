@@ -34,7 +34,7 @@ export default function LandingPage() {
 
                 <main className="pricingPage">
                     <h1 className="pricingPageTitle">Pricing Plans</h1>
-                    
+
                     <div className="pricingContainer">
                         <div className="pricingOption">
                             <h2>Regular Bike</h2>

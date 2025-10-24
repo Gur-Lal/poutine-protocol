@@ -12,10 +12,13 @@ import { createNotification } from "@/data/notificationService";
 import TripHistoryPanel from "@/UI/components/TripHistoryPanel";
 import NotificationButton from "@/UI/components/notification-button";
 import axios from "axios";
+import { BMSCore, Subscriber, UpdateData } from "@/domain/services/BMSCore";
 import "./dashboard.css";
 
 export default function DashboardPage() {
     const [username, setUsername] = useState("");
+    // ADDED: Track user ID for publishing reservation updates
+    const [userId, setUserId] = useState("");
     const [stations, setStations] = useState<DockStation[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedStation, setSelectedStation] = useState<DockStation>();
@@ -44,10 +47,45 @@ export default function DashboardPage() {
 
     const router = useRouter();
 
+    // ADDED: Get the singleton instance of BMSCore
+    const bmsCore = BMSCore.getInstance();
+
+    // ADDED: Subscribe to BMSCore updates for real-time synchronization
     useEffect(() => {
+        // Create subscriber to receive updates from BMSCore
+        const dashboardSubscriber: Subscriber = {
+            update: (data: UpdateData) => {
+                switch (data.type) {
+                    case 'STATIONS_UPDATE':
+                        setStations(data.stations);
+                        break;
+
+                    case 'BIKE_UPDATE':
+                        if (selectedStation?.id === data.stationId) {
+                            setBikes(data.bikes);
+                        }
+                        break;
+
+                    case 'RESERVATION_UPDATE':
+                        fetchStations();
+                        break;
+
+                    case 'SYSTEM_UPDATE':
+                        // System updates logged to console
+                        break;
+                }
+            }
+        };
+
+        // Subscribe with unique ID
+        const subscriberId = `dashboard-${Date.now()}`;
+        bmsCore.subscribe(subscriberId, dashboardSubscriber);
+
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
             if (user) {
                 setUsername(user.displayName || user.email || "");
+                // ADDED: Store user ID for publishing reservation updates
+                setUserId(user.uid);
 
                 try {
                     // Fetch user role
@@ -56,6 +94,8 @@ export default function DashboardPage() {
 
                     const response = await axios.get(`api/getDocuments/stations`);
                     setStations(response.data);
+                    // ADDED: Publish stations to BMSCore so all subscribers are notified
+                    bmsCore.publishStations(response.data);
                 } catch (error) {
                     console.log("Error fetching stations: ", error);
                 }
@@ -65,7 +105,11 @@ export default function DashboardPage() {
             setLoading(false);
         });
 
-        return () => unsubscribe();
+        // ADDED: Cleanup function to unsubscribe when component unmounts
+        return () => {
+            bmsCore.unsubscribe(subscriberId);
+            unsubscribe();
+        };
     }, [router]);
 
     useEffect(() => {
@@ -84,6 +128,8 @@ export default function DashboardPage() {
         try {
             const response = await axios.get(`api/getDocuments/stations`);
             setStations(response.data);
+            // ADDED: Publish stations to BMSCore
+            bmsCore.publishStations(response.data);
         } catch (error) {
             console.log("Error fetching stations: ", error);
         }
@@ -100,6 +146,8 @@ export default function DashboardPage() {
         try {
             const response = await axios.get(`/api/getBikes/${stationId}`);
             setBikes(response.data);
+            // ADDED: Publish bike updates to BMSCore
+            bmsCore.publishBikes(stationId, response.data);
         } catch (error) {
             console.log("Error fetching bikes:", error);
         }
@@ -146,6 +194,8 @@ export default function DashboardPage() {
             if (response.data.ok) {
                 setReservedBikeId(bikeId);
                 await fetchBikeById(bikeId);
+                // ADDED: Publish reservation update to all subscribers
+                bmsCore.publishReservation(userId, bikeId, 'RESERVED');
                 await refreshStationAndBikes(selectedStation?.id);
             }
         } catch (error) {
@@ -176,142 +226,157 @@ export default function DashboardPage() {
                 setReservedBike(null);
             }
         } catch (error) {
-            console.log("Error fetching reservations.", error);
+            console.log("Error fetching reservation: ", error);
         } finally {
             setShowReservations(true);
         }
-    }
+    };
 
     const unlockBike = async (username: string, bikeId: string) => {
         try {
             const response = await axios.post(`/api/unlockBike`, {
                 username: username,
-                bikeId: bikeId
+                bikeId: bikeId,
             });
-
             if (response.data.ok) {
-                alert("Bike unlocked successfully!");
+                // ADDED: Publish unlock update
+                bmsCore.publishReservation(userId, bikeId, 'UNLOCKED');
+                await createNotification(
+                    username,
+                    `Your bike has been unlocked! Ride safely!`,
+                    "success"
+                );
                 setShowReservations(false);
                 setReservation(undefined);
-
-                await refreshStationAndBikes(selectedStation?.id);
-            } else {
-                alert("Failed to unlock bike: " + response.data.error);
+                setReservedBikeId("");
+                await fetchStations();
             }
         } catch (error) {
             console.log("Error unlocking bike:", error);
-            alert("Error unlocking bike");
         }
-    }
+    };
 
     const returnBike = async (username: string, bikeId: string, stationId: string) => {
         try {
             const response = await axios.post(`/api/returnBike`, {
                 username: username,
                 bikeId: bikeId,
-                stationId: stationId
+                stationId: stationId,
             });
-
             if (response.data.ok) {
-                alert("Bike returned successfully!");
-                createNotification(username, "Bike returned!", "You successfully returned your bike.");
-                setShowReservations(false);
-                setReservation(undefined);
+                // ADDED: Publish return update
+                bmsCore.publishReservation(userId, bikeId, 'RETURNED');
+                await createNotification(
+                    username,
+                    `Bike returned successfully at ${selectedStation?.name}!`,
+                    "success"
+                );
                 setReservedBikeId("");
-                setReservedBike(null);
-                await refreshStationAndBikes(stationId);
-            } else {
-                alert("Failed to return bike: " + response.data.error);
+                setReservation(undefined);
+                handleCloseReservationMenu();
+                await fetchStations();
             }
         } catch (error) {
             console.log("Error returning bike:", error);
-            alert("Error returning bike");
-        }
-    }
-
-    // Admin functions
-    const handleMoveBike = async () => {
-        if (!selectedBike || !selectedStation || !destinationStationId) {
-            alert("Please select a bike and destination station");
-            return;
-        }
-
-        try {
-            const response = await axios.post(`/api/admin/moveBike`, {
-                bikeId: selectedBike.id,
-                sourceStationId: selectedStation.id,
-                destinationStationId: destinationStationId,
-            });
-
-            if (response.data.ok) {
-                alert("Bike moved successfully!");
-                handleCloseReservationMenu();
-                fetchStations();
-            } else {
-                alert("Failed to move bike: " + response.data.error);
-            }
-        } catch (error) {
-            console.log("Error moving bike:", error);
-            alert("Error moving bike");
-        }
-    };
-
-    const handleSetBikeMaintenance = async (bike: Bike) => {
-        try {
-            const response = await axios.post(`/api/admin/setBikeMaintenance`, {
-                bikeId: bike.id,
-                inMaintenance: bike.status !== "maintenance",
-            });
-
-            if (response.data.ok) {
-                alert(`Bike ${bike.status !== "maintenance" ? "sent to" : "removed from"} maintenance successfully!`);
-                fetchBikesByStation(selectedStation!.id);
-                fetchStations();
-            } else {
-                alert("Failed to update bike status: " + response.data.error);
-            }
-        } catch (error) {
-            console.log("Error updating bike status:", error);
-            alert("Error updating bike status");
         }
     };
 
     const handleSetStationService = async (station: DockStation, e: React.MouseEvent) => {
         e.stopPropagation();
+
+        const newStatus = station.status === "out_of_service" ? "empty" : "out_of_service";
+
         try {
-            const response = await axios.post(`/api/admin/setStationService`, {
+            const response = await axios.post(`/api/setStationStatus`, {
                 stationId: station.id,
-                outOfService: station.status !== "out_of_service",
+                status: newStatus
             });
 
             if (response.data.ok) {
-                alert(`Station ${station.status !== "out_of_service" ? "marked as out of service" : "restored to service"}!`);
-                fetchStations();
+                alert(`Station ${newStatus === "out_of_service" ? "marked out of service" : "restored to service"}`);
+                // ADDED: Publish system update
+                bmsCore.publishSystemUpdate(`Station ${station.name} ${newStatus === "out_of_service" ? "taken offline" : "restored"}`);
+                await fetchStations();
             } else {
-                alert("Failed to update station status: " + response.data.error);
+                alert("Failed to update station status");
             }
         } catch (error) {
-            console.log("Error updating station status:", error);
+            console.error("Error updating station status:", error);
             alert("Error updating station status");
         }
     };
 
-    const handleResetSystem = async () => {
-        if (!confirm("Are you sure you want to reset the system to its initial state? This cannot be undone.")) {
+    const handleSetBikeMaintenance = async (bike: Bike) => {
+        const newStatus = bike.status === "maintenance" ? "available" : "maintenance";
+
+        try {
+            const response = await axios.post(`/api/setBikeStatus`, {
+                bikeId: bike.id,
+                status: newStatus
+            });
+
+            if (response.data.ok) {
+                alert(`Bike ${newStatus === "maintenance" ? "sent to maintenance" : "returned to service"}`);
+                if (selectedStation) {
+                    await fetchBikesByStation(selectedStation.id);
+                }
+                await fetchStations();
+            } else {
+                alert("Failed to update bike status");
+            }
+        } catch (error) {
+            console.error("Error updating bike status:", error);
+            alert("Error updating bike status");
+        }
+    };
+
+    const handleMoveBike = async () => {
+        if (!selectedBike || !selectedStation || !destinationStationId) {
+            alert("Please select a destination station");
             return;
         }
 
         try {
-            const response = await axios.post(`/api/admin/resetSystem`);
+            const response = await axios.post(`/api/moveBike`, {
+                bikeId: selectedBike.id,
+                fromStationId: selectedStation.id,
+                toStationId: destinationStationId
+            });
+
+            if (response.data.ok) {
+                alert("Bike moved successfully!");
+                // ADDED: Publish system update
+                bmsCore.publishSystemUpdate(`Bike moved from ${selectedStation.name} to another station`);
+                setShowMoveModal(false);
+                handleCloseReservationMenu();
+                await fetchStations();
+            } else {
+                alert("Failed to move bike: " + response.data.error);
+            }
+        } catch (error) {
+            console.error("Error moving bike:", error);
+            alert("Error moving bike");
+        }
+    };
+
+    const handleResetSystem = async () => {
+        if (!confirm("Are you sure you want to reset the entire system? This will clear all data.")) {
+            return;
+        }
+
+        try {
+            const response = await axios.post(`/api/resetSystem`);
 
             if (response.data.ok) {
                 alert("System reset successfully!");
+                // ADDED: Publish system reset
+                bmsCore.publishSystemUpdate("System has been reset");
                 fetchStations();
             } else {
                 alert("Failed to reset system: " + response.data.error);
             }
         } catch (error) {
-            console.log("Error resetting system:", error);
+            console.error("Error resetting system:", error);
             alert("Error resetting system");
         }
     };
@@ -321,39 +386,41 @@ export default function DashboardPage() {
             <div className="header">
                 <div className="navBar">
                     <div
-                        className={`navOption ${currentTab === "trips" ? "activeTab" : ""}`}
-                        onClick={() => setCurrentTab("trips")}
-                    >
-                        Trip History {userRole === "admin" ? "(All Users)" : ""}
-                    </div>
-
-                    <div
-                        className={`navOption ${currentTab === "stations" ? "activeTab" : ""}`}
+                        className={`navOption ${currentTab === "stations" ? "active" : ""}`}
                         onClick={() => setCurrentTab("stations")}
                     >
-                        Stations & Bikes
+                        Stations
                     </div>
-
-                    <div
-                        className={`navOption ${currentTab === "billing" ? "activeTab" : ""}`}
-                        onClick={() => setCurrentTab("billing")}
-                    >
-                        Billing
-                    </div>
+                    {userRole !== "admin" && (
+                        <>
+                            <div
+                                className={`navOption ${currentTab === "trips" ? "active" : ""}`}
+                                onClick={() => setCurrentTab("trips")}
+                            >
+                                Trip History
+                            </div>
+                            <div
+                                className={`navOption ${currentTab === "billing" ? "active" : ""}`}
+                                onClick={() => setCurrentTab("billing")}
+                            >
+                                Billing
+                            </div>
+                        </>
+                    )}
 
                     {userRole !== "admin" && (
                         <div className="navOption" onClick={() => handleViewReservation(username)}>
-                        View Reservation
+                            View Reservation
                         </div>
                     )}
                     {userRole === "admin" && (
                         <div className="navOption adminOption" onClick={handleResetSystem}>
-                        Reset System
+                            Reset System
                         </div>
                     )}
                 </div>
 
-                 <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
                     <NotificationButton />
                     {userRole === "admin" && (
                         <div className="adminBadge">ADMIN</div>
@@ -365,36 +432,36 @@ export default function DashboardPage() {
                     <div>
                         <div className="stationList">
                             {stations.map((station, index) => (
-                            <div className="stationItem" key={index} onClick={() => handleStationClick(station)}>
-                                <p className="title">{station.name.toUpperCase() || "UNNAMED STATION"}</p>
-                                <p className="address">{station.address}</p>
-                                <p
-                                className="status"
-                                id={
-                                    station.status === "empty"
-                                    ? "empty"
-                                    : station.status === "occupied"
-                                    ? "occupied"
-                                    : station.status === "full"
-                                    ? "full"
-                                    : "outOfService"
-                                }
-                                >
-                                {station.status.toUpperCase()}
-                                </p>
+                                <div className="stationItem" key={index} onClick={() => handleStationClick(station)}>
+                                    <p className="title">{station.name.toUpperCase() || "UNNAMED STATION"}</p>
+                                    <p className="address">{station.address}</p>
+                                    <p
+                                        className="status"
+                                        id={
+                                            station.status === "empty"
+                                                ? "empty"
+                                                : station.status === "occupied"
+                                                    ? "occupied"
+                                                    : station.status === "full"
+                                                        ? "full"
+                                                        : "outOfService"
+                                        }
+                                    >
+                                        {station.status.toUpperCase()}
+                                    </p>
 
-                                <p className="capacity">Total Capacity: {station.capacity}</p>
-                                <p className="bikesAvailable">Bikes: {station.numberOfBikes}</p>
+                                    <p className="capacity">Total Capacity: {station.capacity}</p>
+                                    <p className="bikesAvailable">Bikes: {station.numberOfBikes}</p>
 
-                                {userRole === "admin" && (
-                                <button
-                                    className="adminStationBtn"
-                                    onClick={(e) => handleSetStationService(station, e)}
-                                >
-                                    {station.status === "out_of_service" ? "Restore Service" : "Mark Out of Service"}
-                                </button>
-                                )}
-                            </div>
+                                    {userRole === "admin" && (
+                                        <button
+                                            className="adminStationBtn"
+                                            onClick={(e) => handleSetStationService(station, e)}
+                                        >
+                                            {station.status === "out_of_service" ? "Restore Service" : "Mark Out of Service"}
+                                        </button>
+                                    )}
+                                </div>
                             ))}
                         </div>
                     </div>
