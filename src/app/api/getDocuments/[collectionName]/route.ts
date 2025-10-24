@@ -3,7 +3,7 @@ import { FirestoreService } from "@/data/firestoreService";
 
 const service = new FirestoreService();
 
-export async function GET(req: NextRequest, { params }: { params: { collectionName: string } }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ collectionName: string }> }) {
     try {
         const { collectionName } = await params;
         const result = await service.getDocuments(collectionName);

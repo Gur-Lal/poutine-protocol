@@ -1,11 +1,11 @@
-import {NextResponse, NextRequest } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
 import { FirestoreService } from "@/data/firestoreService";
 
 const service = new FirestoreService();
 
-export async function GET(req : NextRequest, {params}:{ params: {bikeId: string}}) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ bikeId: string }> }) {
     try {
-        const {bikeId} = await params;
+        const { bikeId } = await params;
         const result = await service.getBikeById(bikeId);
         return NextResponse.json(result);
     } catch (error) {
