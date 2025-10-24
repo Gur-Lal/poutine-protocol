@@ -284,18 +284,18 @@ export default function DashboardPage() {
     const handleSetStationService = async (station: DockStation, e: React.MouseEvent) => {
         e.stopPropagation();
 
-        const newStatus = station.status === "out_of_service" ? "empty" : "out_of_service";
+        const newStatus = !(station.status === "out_of_service");
 
         try {
-            const response = await axios.post(`/api/setStationStatus`, {
+            const response = await axios.post(`/api/admin/setStationService`, {
                 stationId: station.id,
-                status: newStatus
+                outOfService: newStatus
             });
 
             if (response.data.ok) {
-                alert(`Station ${newStatus === "out_of_service" ? "marked out of service" : "restored to service"}`);
+                alert(`Station ${newStatus ? "marked out of service" : "restored to service"}`);
                 // ADDED: Publish system update
-                bmsCore.publishSystemUpdate(`Station ${station.name} ${newStatus === "out_of_service" ? "taken offline" : "restored"}`);
+                bmsCore.publishSystemUpdate(`Station ${station.name} ${newStatus ? "taken offline" : "restored"}`);
                 await fetchStations();
             } else {
                 alert("Failed to update station status");
@@ -307,16 +307,16 @@ export default function DashboardPage() {
     };
 
     const handleSetBikeMaintenance = async (bike: Bike) => {
-        const newStatus = bike.status === "maintenance" ? "available" : "maintenance";
+        const newStatus = !(bike.status === "maintenance");
 
         try {
-            const response = await axios.post(`/api/setBikeStatus`, {
+            const response = await axios.post(`/api/admin/setBikeMaintenance`, {
                 bikeId: bike.id,
-                status: newStatus
+                inMaintenance: newStatus
             });
 
             if (response.data.ok) {
-                alert(`Bike ${newStatus === "maintenance" ? "sent to maintenance" : "returned to service"}`);
+                alert(`Bike ${newStatus ? "sent to maintenance" : "returned to service"}`);
                 if (selectedStation) {
                     await fetchBikesByStation(selectedStation.id);
                 }
@@ -337,10 +337,10 @@ export default function DashboardPage() {
         }
 
         try {
-            const response = await axios.post(`/api/moveBike`, {
+            const response = await axios.post(`/api/admin/moveBike`, {
                 bikeId: selectedBike.id,
-                fromStationId: selectedStation.id,
-                toStationId: destinationStationId
+                sourceStationId: selectedStation.id,
+                destinationStationId: destinationStationId
             });
 
             if (response.data.ok) {
@@ -365,7 +365,7 @@ export default function DashboardPage() {
         }
 
         try {
-            const response = await axios.post(`/api/resetSystem`);
+            const response = await axios.post(`/api/admin/resetSystem`);
 
             if (response.data.ok) {
                 alert("System reset successfully!");
