@@ -43,7 +43,6 @@
     display:flex;
     flex:1;
     height: calc(100vh - 60px);
-    overflow:hidden;
 }
 
 .title{
@@ -54,6 +53,7 @@
 
 .stationList{
     width:100%;
+    height:100%;
     overflow-y:auto;
     padding:20px;
 }
