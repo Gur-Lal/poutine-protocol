@@ -43,6 +43,10 @@ export default function DashboardPage() {
         { id: 1, date: "2025-10-01", amount: 15.5, description: "Bike rental - Station A" },
         { id: 2, date: "2025-10-05", amount: 7.0, description: "Bike rental - Station B" },
         { id: 3, date: "2025-10-12", amount: 20.0, description: "Late return fee" },
+        { id: 4, date: "2025-10-01", amount: 15.5, description: "Bike rental - Station A" },
+        { id: 5, date: "2025-10-05", amount: 7.0, description: "Bike rental - Station B" },
+        { id: 6, date: "2025-10-12", amount: 20.0, description: "Late return fee" },
+        
     ];
 
     const router = useRouter();
@@ -468,16 +472,22 @@ export default function DashboardPage() {
                 )}
 
                 {currentTab === "billing" && (
-                    <div>
+                    <div className="billingTab">
                         <h2>Billing History</h2>
+                        <table className="billingTable">
+                            <tr className="tableHeader">
+                                <th style={{borderTopLeftRadius:"10px"}}>Date</th>
+                                <th>Amount</th>
+                                <th style={{borderTopRightRadius:"10px"}}>Description</th>
+                            </tr>
                         {fakeBillings.map((bill) => (
-                            <div key={bill.id} className="billingItem">
-                                <p><strong>Date:</strong> {bill.date}</p>
-                                <p><strong>Amount:</strong> ${bill.amount.toFixed(2)}</p>
-                                <p><strong>Description:</strong> {bill.description}</p>
-                                <hr />
-                            </div>
+                            <tr key={bill.id} className="billingItem">
+                                <td>{bill.date}</td>
+                                <td style={{borderLeft: "1px solid white", borderRight: "1px solid white" }}>${bill.amount.toFixed(2)}</td>
+                                <td>{bill.description}</td>
+                            </tr>
                         ))}
+                        </table>
                     </div>
                 )}
 
