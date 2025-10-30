@@ -33,10 +33,10 @@ export class FirestoreRepository {
         }
     }
 
-    async getReservationByUsername(username: string) {
+    async getReservationByEmail(email: string) {
         try {
             const snapshot = await this.db.collection("reservations")
-                .where("username", "==", username)
+                .where("email", "==", email)
                 .where("status", "==", "active")
                 .get();
 

@@ -17,8 +17,8 @@ export class FirestoreService{
         return bikes;
     }
 
-    async getReservationByUsername(username: string){
-        const reservation = this.repository.getReservationByUsername(username);
+    async getReservationByEmail(email: string){
+        const reservation = this.repository.getReservationByEmail(email);
         return reservation;
     }
 

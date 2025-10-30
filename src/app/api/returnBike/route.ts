@@ -8,11 +8,11 @@ const tripService = new TripService(adminDb);
 
 export async function POST(req: Request) {
     try {
-        const { username, bikeId, stationId } = await req.json();
+        const { email, bikeId, stationId } = await req.json();
 
-        const result = await service.returnBike({ username, bikeId, stationId });
+        const result = await service.returnBike({ email, bikeId, stationId });
 
-        const trip = await tripService.endTrip(username, bikeId, stationId);
+        const trip = await tripService.endTrip(email, bikeId, stationId);
 
         return NextResponse.json({ ok: true, data: { ...result, trip } });
     } catch (error) {
