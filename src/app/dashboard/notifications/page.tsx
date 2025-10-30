@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Bell, X } from "lucide-react";
+import { Bell, X, ArrowLeft } from "lucide-react";
 import { db, auth } from "@/data/firebase";
 import { collection, query, where, onSnapshot, orderBy, deleteDoc, doc, Timestamp, getDoc, } from "firebase/firestore";
 import { onAuthStateChanged, User } from "firebase/auth";
+import { UserData } from "@/domain/models/UserData";
+import { useRouter } from 'next/navigation'
 import "./notifications.css";
 
 type Notification = {
@@ -15,16 +17,12 @@ type Notification = {
     isAdminNotification?: boolean;
 };
 
-type UserData = {
-    username: string;
-    role?: string;
-};
-
 export default function NotificationsPage() {
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [user, setUser] = useState<User | null>(null);
-    const [userData, setUserData] = useState<UserData | null>(null);
+    const [isAdmin, setIsAdmin] = useState(false);
     const [loading, setLoading] = useState(true);
+    const router = useRouter()
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
@@ -33,10 +31,11 @@ export default function NotificationsPage() {
             if (currentUser) {
                 const userDoc = await getDoc(doc(db, "users", currentUser.uid));
                 if (userDoc.exists()) {
-                    setUserData(userDoc.data() as UserData);
+                    const userData = userDoc.data() as UserData;
+                    setIsAdmin(userData.role === "admin");
                 }
             } else {
-                setUserData(null);
+                setIsAdmin(false);
             }
 
             setLoading(false);
@@ -45,16 +44,14 @@ export default function NotificationsPage() {
     }, []);
 
     useEffect(() => {
-        if (!user || !userData) {
+        if (!user?.email) {
             setNotifications([]);
             return;
         }
 
-        const isAdmin = userData.role === "admin";
-
         const userQuery = query(
             collection(db, "notifications"),
-            where("username", "==", userData.username),
+            where("email", "==", user.email),
             orderBy("date", "desc")
         );
 
@@ -111,7 +108,7 @@ export default function NotificationsPage() {
         }
 
         return () => unsubscribers.forEach((unsub) => unsub());
-    }, [user, userData]);
+    }, [user, isAdmin]);
 
     const dismissNotification = async (id: string) => {
         await deleteDoc(doc(db, "notifications", id));
@@ -134,29 +131,33 @@ export default function NotificationsPage() {
     }
 
     return (
-        <div className="notificationsContainer">
+        <div>
             <div className="notificationsHeader">
+                <button type="button" title="Go back" onClick={() => router.back()}>
+                    <ArrowLeft />
+                </button>
                 <h1>
                     <Bell /> Notifications
                 </h1>
             </div>
-
-            <div className="notificationsArea">
-                {notifications.length === 0 ? (
-                    <div className="emptyState">
-                        You have no notifications
-                    </div>
-                ) : (
-                    <div className="notificationsList">
-                        {notifications.map((notification) => (
-                            <NotificationCard
-                                key={notification.id}
-                                {...notification}
-                                onDismiss={() => dismissNotification(notification.id)}
-                            />
-                        ))}
-                    </div>
-                )}
+            <div className="notificationsContainer">
+                <div className="notificationsArea">
+                    {notifications.length === 0 ? (
+                        <div className="emptyState">
+                            You have no notifications
+                        </div>
+                    ) : (
+                        <div className="notificationsList">
+                            {notifications.map((notification) => (
+                                <NotificationCard
+                                    key={notification.id}
+                                    {...notification}
+                                    onDismiss={() => dismissNotification(notification.id)}
+                                />
+                            ))}
+                        </div>
+                    )}
+                </div>
             </div>
         </div>
     );

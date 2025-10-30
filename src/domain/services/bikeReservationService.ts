@@ -2,19 +2,19 @@ import { Firestore, Transaction, Timestamp, UpdateData } from "firebase-admin/fi
 import { Reservation } from "../models/Reservation";
 import { Bike, BikeStatus } from "../models/Bike";
 import { DockStation, StationStatus } from "../models/DockStation";
-import { createNotification } from "@/data/notificationService";
+import { createNotification } from "@/domain/services/notificationService";
 import { createAdminNotification } from "@/domain/services/adminService";
 
 export class BikeReservationService {
     constructor(private db: Firestore) { }
 
-    async reserveBike(args: { username: string; stationName: string; bikeId: string; }) {
+    async reserveBike(args: { email: string; stationName: string; bikeId: string; }) {
 
-        const { username, stationName, bikeId } = args;
+        const { email, stationName, bikeId } = args;
 
         const activeReservationSnap = await this.db
             .collection("reservations")
-            .where("username", "==", username)
+            .where("email", "==", email)
             .where("status", "==", "active")
             .limit(1)
             .get();
@@ -48,19 +48,6 @@ export class BikeReservationService {
                 throw new Error("No bikes available at this station.");
             }
 
-            /** 
-            const existingRes = await tx.get(this.db
-                .collection("reservations")
-                .where("username", "==", username)
-                .where("reservationExpiry", ">", Timestamp.now())
-                .limit(1)
-            );
-
-            if(!existingRes.empty){
-                throw new Error("User already has an active reservation.");
-            }
-            */
-
             const bikeRef = this.db.collection("bikes").doc(bikeId);
             const bikeDoc = await tx.get(bikeRef);
             if (!bikeDoc.exists) throw new Error("Bike not found.");
@@ -83,11 +70,11 @@ export class BikeReservationService {
             const expiryMs = (station.expiresAfterMinutes ?? 10) * 60 * 1000;
             const expiryTs = Timestamp.fromMillis(startTs.toMillis() + expiryMs);
 
-            const reservation = new Reservation(username, bikeId, startTs.toDate(), expiryTs.toDate(), "active");
+            const reservation = new Reservation(email, bikeId, startTs.toDate(), expiryTs.toDate(), "active");
 
             const reservationRef = this.db.collection("reservations").doc();
             tx.set(reservationRef, {
-                username: reservation.username,
+                email: reservation.email,
                 bikeId: reservation.bikeId,
                 startTime: startTs,
                 reservationExpiry: expiryTs,
@@ -125,7 +112,7 @@ export class BikeReservationService {
         return {
             ok: true,
             reservationId: result.reservationId,
-            username,
+            email,
             bikeId,
             startTime: result.reservation.startTime.toISOString(),
             reservationExpiry: result.reservation.reservationExpiry.toISOString(),
@@ -134,7 +121,7 @@ export class BikeReservationService {
         };
     }
 
-    async unlockBike({ username, bikeId, }: { username: string; bikeId: string; }) {
+    async unlockBike({ email, bikeId, }: { email: string; bikeId: string; }) {
         const bikeRef = this.db.collection("bikes").doc(bikeId);
         const bikeSnap = await bikeRef.get();
 
@@ -150,7 +137,7 @@ export class BikeReservationService {
 
         const reservationSnap = await this.db.collection("reservations")
             .where("bikeId", "==", bikeId)
-            .where("username", "==", username)
+            .where("email", "==", email)
             .where("status", "==", "active")
             .limit(1)
             .get();
@@ -175,7 +162,7 @@ export class BikeReservationService {
                     status: "available"
                 });
             });
-            createNotification(username, "Reservation expired", "The bike you had reserved is now available.");
+            createNotification(email, "Reservation expired", "The bike you had reserved is now available.");
             return {
                 ok: false,
                 message: "Reservation expired, bike is now available.",
@@ -240,11 +227,11 @@ export class BikeReservationService {
     }
 
     async returnBike({
-        username,
+        email,
         bikeId,
         stationId,
     }: {
-        username: string;
+        email: string;
         bikeId: string;
         stationId: string;
     }) {
@@ -253,7 +240,7 @@ export class BikeReservationService {
 
         const activeResQuery = this.db.collection("reservations")
             .where("bikeId", "==", bikeId)
-            .where("username", "==", username)
+            .where("email", "==", email)
             .where("status", "==", "active")
             .orderBy("startTime", "desc")
             .limit(1);

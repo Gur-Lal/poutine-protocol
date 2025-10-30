@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { auth } from "@/data/firebase";
 import { useRouter } from "next/navigation";
 import { onAuthStateChanged } from "firebase/auth";
@@ -8,7 +8,7 @@ import { DockStation } from "@/domain/models/DockStation";
 import { Bike } from "@/domain/models/Bike";
 import { FaXmark } from "react-icons/fa6";
 import { Reservation } from "@/domain/models/Reservation";
-import { createNotification } from "@/data/notificationService";
+import { createNotification } from "@/domain/services/notificationService";
 import TripHistoryPanel from "@/UI/components/TripHistoryPanel";
 import NotificationButton from "@/UI/components/notification-button";
 import axios from "axios";
@@ -16,7 +16,7 @@ import { BMSCore, Subscriber, UpdateData } from "@/domain/services/BMSCore";
 import "./dashboard.css";
 
 export default function DashboardPage() {
-    const [username, setUsername] = useState("");
+    const [email, setEmail] = useState("");
     // ADDED: Track user ID for publishing reservation updates
     const [userId, setUserId] = useState("");
     const [stations, setStations] = useState<DockStation[]>([]);
@@ -47,8 +47,18 @@ export default function DashboardPage() {
 
     const router = useRouter();
 
-    // ADDED: Get the singleton instance of BMSCore
     const bmsCore = BMSCore.getInstance();
+
+    const fetchStations = useCallback(async () => {
+        try {
+            const response = await axios.get(`api/getDocuments/stations`);
+            setStations(response.data);
+            // ADDED: Publish stations to BMSCore
+            bmsCore.publishStations(response.data);
+        } catch (error) {
+            console.log("Error fetching stations: ", error);
+        }
+    }, [bmsCore]);
 
     // ADDED: Subscribe to BMSCore updates for real-time synchronization
     useEffect(() => {
@@ -83,7 +93,7 @@ export default function DashboardPage() {
 
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
             if (user) {
-                setUsername(user.displayName || user.email || "");
+                setEmail(user.email || "");
                 // ADDED: Store user ID for publishing reservation updates
                 setUserId(user.uid);
 
@@ -110,7 +120,7 @@ export default function DashboardPage() {
             bmsCore.unsubscribe(subscriberId);
             unsubscribe();
         };
-    }, [router]);
+    }, [bmsCore, fetchStations, router, selectedStation?.id]);
 
     useEffect(() => {
         console.log(selectedStation);
@@ -123,17 +133,6 @@ export default function DashboardPage() {
     if (loading) {
         return <p>Loading...</p>;
     }
-
-    const fetchStations = async () => {
-        try {
-            const response = await axios.get(`api/getDocuments/stations`);
-            setStations(response.data);
-            // ADDED: Publish stations to BMSCore
-            bmsCore.publishStations(response.data);
-        } catch (error) {
-            console.log("Error fetching stations: ", error);
-        }
-    };
 
     const refreshStationAndBikes = async (stationId?: string) => {
         await fetchStations();
@@ -184,10 +183,10 @@ export default function DashboardPage() {
         setSelectedBike(bike);
     }
 
-    const reserveBike = async (username: string, stationName: string, bikeId: string) => {
+    const reserveBike = async (email: string, stationName: string, bikeId: string) => {
         try {
             const response = await axios.post(`/api/reserveBike`, {
-                username: username,
+                email: email,
                 stationName: stationName,
                 bikeId: bikeId
             });
@@ -205,9 +204,9 @@ export default function DashboardPage() {
         }
     }
 
-    const handleViewReservation = async (username: string) => {
+    const handleViewReservation = async (email: string) => {
         try {
-            const response = await axios.get(`/api/getReservation/${username}`);
+            const response = await axios.get(`/api/getReservation/${email}`);
             const data = response.data;
             if (data) {
                 const startTime = new Date(data.startTime._seconds * 1000);
@@ -232,19 +231,18 @@ export default function DashboardPage() {
         }
     };
 
-    const unlockBike = async (username: string, bikeId: string) => {
+    const unlockBike = async (email: string, bikeId: string) => {
         try {
             const response = await axios.post(`/api/unlockBike`, {
-                username: username,
+                email: email,
                 bikeId: bikeId,
             });
             if (response.data.ok) {
-                // ADDED: Publish unlock update
                 bmsCore.publishReservation(userId, bikeId, 'UNLOCKED');
                 await createNotification(
-                    username,
-                    `Your bike has been unlocked! Ride safely!`,
-                    "success"
+                    email,
+                    "Bike unlocked",
+                    "Your bike has been successfully unlocked. Ride safely!"
                 );
                 setShowReservations(false);
                 setReservation(undefined);
@@ -256,20 +254,19 @@ export default function DashboardPage() {
         }
     };
 
-    const returnBike = async (username: string, bikeId: string, stationId: string) => {
+    const returnBike = async (email: string, bikeId: string, stationId: string) => {
         try {
             const response = await axios.post(`/api/returnBike`, {
-                username: username,
+                email: email,
                 bikeId: bikeId,
                 stationId: stationId,
             });
             if (response.data.ok) {
-                // ADDED: Publish return update
                 bmsCore.publishReservation(userId, bikeId, 'RETURNED');
                 await createNotification(
-                    username,
-                    `Bike returned successfully at ${selectedStation?.name}!`,
-                    "success"
+                    email,
+                    `Bike returned`,
+                    `Your bike has been successfully returned to station: ${selectedStation?.name}`
                 );
                 setReservedBikeId("");
                 setReservation(undefined);
@@ -294,7 +291,6 @@ export default function DashboardPage() {
 
             if (response.data.ok) {
                 alert(`Station ${newStatus ? "marked out of service" : "restored to service"}`);
-                // ADDED: Publish system update
                 bmsCore.publishSystemUpdate(`Station ${station.name} ${newStatus ? "taken offline" : "restored"}`);
                 await fetchStations();
             } else {
@@ -409,7 +405,7 @@ export default function DashboardPage() {
                     )}
 
                     {userRole !== "admin" && (
-                        <div className="navOption" onClick={() => handleViewReservation(username)}>
+                        <div className="navOption" onClick={() => handleViewReservation(email)}>
                             View Reservation
                         </div>
                     )}
@@ -482,7 +478,7 @@ export default function DashboardPage() {
                 )}
 
                 {currentTab === "trips" && (
-                    <TripHistoryPanel username={username} userRole={userRole} />
+                    <TripHistoryPanel email={email} role={userRole} />
                 )}
             </div>
 
@@ -531,12 +527,12 @@ export default function DashboardPage() {
                                             alert("Please select a bike");
                                             return;
                                         }
-                                        reserveBike(username, selectedStation!.name, selectedBike.id);
+                                        reserveBike(email, selectedStation!.name, selectedBike.id);
                                     }}
                                         disabled={reservedBikeId !== ""}> RESERVE
                                     </button>
                                     <button className="actionButton" onClick={() => {
-                                        returnBike(username, reservedBikeId, selectedStation.id);
+                                        returnBike(email, reservedBikeId, selectedStation.id);
                                     }} disabled={!(reservedBikeId !== "")}> RETURN
                                     </button>
                                 </div>
@@ -591,7 +587,7 @@ export default function DashboardPage() {
                                     <p className="reservationStatus">{reservation.status.toUpperCase()}</p>
                                     <p>Start Time: {reservation.startTime.toLocaleString()}</p>
                                     <p style={{ marginBottom: "20px" }}>Expires: {reservation.reservationExpiry.toLocaleString()}</p>
-                                    <button className="actionButton" onClick={() => unlockBike(username, reservation.bikeId)} disabled={reservedBike?.status === "on_trip"}> Unlock Bike</button>
+                                    <button className="actionButton" onClick={() => unlockBike(email, reservation.bikeId)} disabled={reservedBike?.status === "on_trip"}> Unlock Bike</button>
                                 </div>
                             )}
                         </div>

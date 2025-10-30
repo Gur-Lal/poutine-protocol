@@ -6,34 +6,24 @@ import { useEffect, useState } from "react";
 import { collection, onSnapshot, query, where, doc, getDoc } from "firebase/firestore";
 import { db, auth } from "@/data/firebase";
 import { onAuthStateChanged } from "firebase/auth";
-
-type UserData = {
-    username: string;
-    role?: string;
-};
+import { UserData } from "@/domain/models/UserData";
 
 export default function NotificationButton() {
-    const [unreadCount, setNotificationCount] = useState(0);
+    const [notificationCount, setNotificationCount] = useState(0);
 
     useEffect(() => {
         const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
-            if (!user) {
+            if (!user?.email) {
                 setNotificationCount(0);
                 return;
             }
 
             const userDoc = await getDoc(doc(db, "users", user.uid));
-            if (!userDoc.exists()) {
-                setNotificationCount(0);
-                return;
-            }
-
-            const userData = userDoc.data() as UserData;
-            const isAdmin = userData.role === "admin";
+            const isAdmin = userDoc.exists() && (userDoc.data() as UserData).role === "admin";
 
             const userQuery = query(
                 collection(db, "notifications"),
-                where("username", "==", userData.username)
+                where("email", "==", user.email)
             );
 
             const adminQuery = isAdmin
@@ -75,9 +65,9 @@ export default function NotificationButton() {
         >
             <Bell />
 
-            {unreadCount > 0 && (
+            {notificationCount > 0 && (
                 <span>
-                    {unreadCount > 9 ? "9+" : unreadCount}
+                    {notificationCount > 9 ? "9+" : notificationCount}
                 </span>
             )}
         </Link>

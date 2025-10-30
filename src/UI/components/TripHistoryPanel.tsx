@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { UserData } from "@/domain/models/UserData";
 import axios from "axios";
 
 interface Trip {
@@ -13,12 +14,7 @@ interface Trip {
   status: "active" | "completed";
 }
 
-interface TripHistoryPanelProps {
-  username: string;
-  userRole: string;
-}
-
-export default function TripHistoryPanel({ username, userRole }: TripHistoryPanelProps) {
+export default function TripHistoryPanel({ email, role }: UserData) {
   const [trips, setTrips] = useState<Trip[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -27,10 +23,10 @@ export default function TripHistoryPanel({ username, userRole }: TripHistoryPane
       try {
         setLoading(true);
         let url = "/api/trips";
-        if (userRole === "admin") {
+        if (role === "admin") {
           url = "/api/trips/all";
         } else {
-          url = `/api/trips/${username}`;
+          url = `/api/trips/${email}`;
         }
         const res = await axios.get(url);
         if (res.data.ok) {
@@ -55,14 +51,14 @@ export default function TripHistoryPanel({ username, userRole }: TripHistoryPane
     };
 
     fetchTrips();
-  }, [username, userRole]);
+  }, [email, role]);
 
   if (loading) return <p>Loading trip history...</p>;
   if (trips.length === 0) return <p>No trips found.</p>;
 
   return (
     <div className="tripHistoryPanel">
-      <h2>Trip History {userRole === "admin" ? "(All Users)" : ""}</h2>
+      <h2>Trip History {role === "admin" ? "(All Users)" : ""}</h2>
       <ul>
         {trips.map((trip) => (
           <div key={trip.id} className="tripItem">

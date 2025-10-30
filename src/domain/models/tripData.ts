@@ -1,6 +1,6 @@
 export interface TripData {
   id?: string;
-  username: string;
+  email: string;
   bikeId: string;
   startStationId?: string;
   endStationId?: string;
