@@ -47,8 +47,18 @@ export default function DashboardPage() {
 
     const router = useRouter();
 
-    // ADDED: Get the singleton instance of BMSCore
     const bmsCore = BMSCore.getInstance();
+
+    const fetchStations = useCallback(async () => {
+        try {
+            const response = await axios.get(`api/getDocuments/stations`);
+            setStations(response.data);
+            // ADDED: Publish stations to BMSCore
+            bmsCore.publishStations(response.data);
+        } catch (error) {
+            console.log("Error fetching stations: ", error);
+        }
+    }, [bmsCore]);
 
     // ADDED: Subscribe to BMSCore updates for real-time synchronization
     useEffect(() => {
@@ -110,7 +120,7 @@ export default function DashboardPage() {
             bmsCore.unsubscribe(subscriberId);
             unsubscribe();
         };
-    }, [router]);
+    }, [bmsCore, fetchStations, router, selectedStation?.id]);
 
     useEffect(() => {
         console.log(selectedStation);
@@ -123,17 +133,6 @@ export default function DashboardPage() {
     if (loading) {
         return <p>Loading...</p>;
     }
-
-    const fetchStations = async () => {
-        try {
-            const response = await axios.get(`api/getDocuments/stations`);
-            setStations(response.data);
-            // ADDED: Publish stations to BMSCore
-            bmsCore.publishStations(response.data);
-        } catch (error) {
-            console.log("Error fetching stations: ", error);
-        }
-    };
 
     const refreshStationAndBikes = async (stationId?: string) => {
         await fetchStations();
