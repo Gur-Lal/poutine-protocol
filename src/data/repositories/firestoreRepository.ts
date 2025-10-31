@@ -8,9 +8,9 @@ export class FirestoreRepository {
         this.db = adminDb;
     }
 
-    async getAllDocuments(collectionName: string) {
+    async getAllDocuments(collectionName: string): Promise<Record<string, unknown>[]> {
         const snapshot = await this.db.collection(collectionName).get();
-        const documents: any[] = [];
+        const documents: Record<string, unknown>[] = [];
 
         snapshot.forEach((doc) => {
             documents.push({ id: doc.id, ...doc.data() });

@@ -1,5 +1,5 @@
 import { Firestore } from "firebase-admin/firestore";
-import { TripData } from "../models/tripData";
+import { TripData } from "../models/TripData";
 
 export class TripService {
   constructor(private db: Firestore) {}
@@ -35,8 +35,8 @@ export class TripService {
     await ref.update({ endTime, endStationId, status: "completed" });
 
     return {
-      id: ref.id,
       ...(doc.data() as TripData),
+      id: ref.id,
       endTime,
       endStationId,
       status: "completed",
@@ -50,11 +50,11 @@ export class TripService {
       .orderBy("startTime", "desc")
       .get();
 
-    return snap.docs.map((doc) => ({ id: doc.id, ...(doc.data() as TripData) }));
+    return snap.docs.map((doc) => ({ ...(doc.data() as TripData), id: doc.id }));
   }
 
   async getAllTrips(): Promise<TripData[]> {
     const snap = await this.db.collection("trips").orderBy("startTime", "desc").get();
-    return snap.docs.map((doc) => ({ id: doc.id, ...(doc.data() as TripData) }));
+    return snap.docs.map((doc) => ({ ...(doc.data() as TripData), id: doc.id }));
   }
 }
