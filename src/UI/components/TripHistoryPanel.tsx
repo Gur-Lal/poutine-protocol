@@ -8,7 +8,9 @@ interface Trip {
   id: string;
   bikeId: string;
   startStationId?: string;
+  startStationName: string;
   endStationId?: string;
+  endStationName: string;
   startTime: string;
   endTime: string | null;
   status: "active" | "completed";
@@ -63,7 +65,7 @@ export default function TripHistoryPanel({ email, role }: UserData) {
         {trips.map((trip) => (
           <div key={trip.id} className="tripItem">
             <p><strong>Bike:</strong> {trip.bikeId}</p>
-            <p><strong>From:</strong> {trip.startStationId || "N/A"} | <strong>To:</strong> {trip.endStationId || "N/A"}</p>
+            <p><strong>From:</strong> {trip.startStationName || "N/A"} | <strong>To:</strong> {trip.endStationName || "N/A"}</p>
             <p><strong>Status:</strong> {trip.status.toUpperCase()}</p>
             <p>
               <strong>Start:</strong> {new Date(trip.startTime).toLocaleString()} |{" "}

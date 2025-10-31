@@ -237,12 +237,13 @@ export default function DashboardPage() {
         }
     };
 
-    const unlockBike = async (email: string, bikeId: string, stationId: string) => {
+    const unlockBike = async (email: string, bikeId: string, stationId: string, stationName: string) => {
         try {
             const response = await axios.post(`/api/unlockBike`, {
                 email: email,
                 bikeId: bikeId,
                 startStationId: stationId,
+                startStationName: stationName
             });
             if (response.data.ok) {
                 bmsCore.publishReservation(userId, bikeId, 'UNLOCKED');
@@ -262,12 +263,13 @@ export default function DashboardPage() {
         }
     };
 
-    const returnBike = async (email: string, bikeId: string, stationId: string) => {
+    const returnBike = async (email: string, bikeId: string, stationId: string, stationName: string) => {
         try {
             const response = await axios.post(`/api/returnBike`, {
                 email: email,
                 bikeId: bikeId,
                 stationId: stationId,
+                stationName: stationName
             });
             if (response.data.ok) {
                 bmsCore.publishReservation(userId, bikeId, 'RETURNED');
@@ -546,7 +548,7 @@ export default function DashboardPage() {
                                         disabled={reservedBikeId !== ""}> RESERVE
                                     </button>
                                     <button className="actionButton" onClick={() => {
-                                        returnBike(email, reservedBikeId, selectedStation.id);
+                                        returnBike(email, reservedBikeId, selectedStation.id, selectedStation.name);
                                     }} disabled={!(reservedBikeId !== "")}> RETURN
                                     </button>
                                 </div>
@@ -601,7 +603,7 @@ export default function DashboardPage() {
                                     <p className="reservationStatus">{reservation.status.toUpperCase()}</p>
                                     <p>Start Time: {reservation.startTime.toLocaleString()}</p>
                                     <p style={{ marginBottom: "20px" }}>Expires: {reservation.reservationExpiry.toLocaleString()}</p>
-                                    <button className="actionButton" onClick={() => unlockBike(email, reservation.bikeId, startStation!.id)} disabled={reservedBike?.status === "on_trip"}> Unlock Bike</button>
+                                    <button className="actionButton" onClick={() => unlockBike(email, reservation.bikeId, startStation!.id, startStation!.name)} disabled={reservedBike?.status === "on_trip"}> Unlock Bike</button>
                                 </div>
                             )}
                         </div>
