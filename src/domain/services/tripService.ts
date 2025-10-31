@@ -4,10 +4,11 @@ import { TripData } from "../models/tripData";
 export class TripService {
   constructor(private db: Firestore) {}
 
-  async startTrip(email: string, bikeId: string): Promise<TripData> {
+  async startTrip(email: string, bikeId: string, startStationId: string): Promise<TripData> {
     const trip: Omit<TripData, "id"> = {
       email,
       bikeId,
+      startStationId,
       startTime: new Date(),
       endTime: null,
       status: "active",
