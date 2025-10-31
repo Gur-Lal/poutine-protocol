@@ -2,20 +2,22 @@
 
 import { useState, useEffect } from "react";
 import { UserData } from "@/domain/models/UserData";
+import { TripData } from "@/domain/models/TripData";
 import axios from "axios";
 
-interface Trip {
+interface TripDataAPI {
   id: string;
+  email: string;
   bikeId: string;
   startStationId?: string;
   endStationId?: string;
-  startTime: string;
+  startTime: string;  // Dates are strings after JSON conversion
   endTime: string | null;
   status: "active" | "completed";
 }
 
 export default function TripHistoryPanel({ email, role }: UserData) {
-  const [trips, setTrips] = useState<Trip[]>([]);
+  const [trips, setTrips] = useState<TripData[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -30,16 +32,10 @@ export default function TripHistoryPanel({ email, role }: UserData) {
         }
         const res = await axios.get(url);
         if (res.data.ok) {
-          const tripsData = res.data.trips.map((trip: any) => ({
+          const tripsData: TripData[] = res.data.trips.map((trip: TripDataAPI) => ({
             ...trip,
-            startTime: trip.startTime._seconds
-              ? new Date(trip.startTime._seconds * 1000)
-              : new Date(trip.startTime),
-            endTime: trip.endTime?._seconds
-              ? new Date(trip.endTime._seconds * 1000)
-              : trip.endTime
-              ? new Date(trip.endTime)
-              : null,
+            startTime: new Date(trip.startTime),
+            endTime: trip.endTime ? new Date(trip.endTime) : null,
           }));
           setTrips(tripsData);
         }

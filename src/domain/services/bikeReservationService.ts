@@ -88,7 +88,7 @@ export class BikeReservationService {
                 reservationId: reservationRef.id, reservation,
                 stationSnapshot: {
                     id: stationRef.id,
-                    name: (station as any).name,
+                    name: station.name,
                     capacity: station.capacity,
                     numberOfBikes: newNumberOfBikes,
                     status: newStatus,
