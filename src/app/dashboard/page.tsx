@@ -14,6 +14,13 @@ import NotificationButton from "@/UI/components/notification-button";
 import axios from "axios";
 import { BMSCore, Subscriber, UpdateData } from "@/domain/services/BMSCore";
 import "./dashboard.css";
+import { useRef } from "react";
+
+declare global {
+    interface Window {
+        google: any;
+    }
+}
 
 export default function DashboardPage() {
     const [email, setEmail] = useState("");
@@ -47,8 +54,12 @@ export default function DashboardPage() {
         { id: 4, date: "2025-10-01", amount: 15.5, description: "Bike rental - Station A" },
         { id: 5, date: "2025-10-05", amount: 7.0, description: "Bike rental - Station B" },
         { id: 6, date: "2025-10-12", amount: 20.0, description: "Late return fee" },
-        
+
     ];
+
+    // Maps
+    const mapRef = useRef<HTMLDivElement>(null);
+    const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
 
     const router = useRouter();
 
@@ -134,6 +145,68 @@ export default function DashboardPage() {
     useEffect(() => {
         console.log(selectedBike);
     }, [selectedBike]);
+
+    // Get current location
+    useEffect(() => {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    setUserLocation({
+                        lat: position.coords.latitude,
+                        lng: position.coords.longitude
+                    });
+                },
+                (error) => {
+                    console.log("Error getting location:", error);
+                    // Default
+                    setUserLocation({ lat: 45.5017, lng: -73.5673 });
+                }
+            );
+        }
+    }, []);
+
+    // Initialize Google Map
+    // Initialize Google Map
+    useEffect(() => {
+        if (!userLocation) return;
+
+        // Check if script already loaded
+        if (window.google && window.google.maps && mapRef.current) {
+            const map = new window.google.maps.Map(mapRef.current, {
+                center: userLocation,
+                zoom: 13,
+            });
+
+            new window.google.maps.Marker({
+                position: userLocation,
+                map: map,
+                title: "Your Location",
+            });
+            return;
+        }
+
+        // Load script if not already loaded
+        if (!document.querySelector('script[src*="maps.googleapis.com"]')) {
+            const script = document.createElement('script');
+            script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}`;
+            script.async = true;
+            script.onload = () => {
+                if (mapRef.current) {
+                    const map = new window.google.maps.Map(mapRef.current, {
+                        center: userLocation,
+                        zoom: 13,
+                    });
+
+                    new window.google.maps.Marker({
+                        position: userLocation,
+                        map: map,
+                        title: "Your Location",
+                    });
+                }
+            };
+            document.head.appendChild(script);
+        }
+    }, [userLocation]);
 
     if (loading) {
         return <p>Loading...</p>;
@@ -435,42 +508,48 @@ export default function DashboardPage() {
             </div>
             <div className="dashboardArea">
                 {currentTab === "stations" && (
-                    <div>
-                        <div className="stationList">
-                            {stations.map((station, index) => (
-                                <div className="stationItem" key={index} onClick={() => handleStationClick(station)}>
-                                    <p className="title">{station.name.toUpperCase() || "UNNAMED STATION"}</p>
-                                    <p className="address">{station.address}</p>
-                                    <p
-                                        className="status"
-                                        id={
-                                            station.status === "empty"
-                                                ? "empty"
-                                                : station.status === "occupied"
-                                                    ? "occupied"
-                                                    : station.status === "full"
-                                                        ? "full"
-                                                        : "outOfService"
-                                        }
-                                    >
-                                        {station.status.toUpperCase()}
-                                    </p>
-
-                                    <p className="capacity">Total Capacity: {station.capacity}</p>
-                                    <p className="bikesAvailable">Bikes: {station.numberOfBikes}</p>
-
-                                    {userRole === "admin" && (
-                                        <button
-                                            className="adminStationBtn"
-                                            onClick={(e) => handleSetStationService(station, e)}
+                    <>
+                        <div className="leftPanel">
+                            <div className="stationList">
+                                {stations.map((station, index) => (
+                                    <div className="stationItem" key={index} onClick={() => handleStationClick(station)}>
+                                        <p className="title">{station.name.toUpperCase() || "UNNAMED STATION"}</p>
+                                        <p className="address">{station.address}</p>
+                                        <p
+                                            className="status"
+                                            id={
+                                                station.status === "empty"
+                                                    ? "empty"
+                                                    : station.status === "occupied"
+                                                        ? "occupied"
+                                                        : station.status === "full"
+                                                            ? "full"
+                                                            : "outOfService"
+                                            }
                                         >
-                                            {station.status === "out_of_service" ? "Restore Service" : "Mark Out of Service"}
-                                        </button>
-                                    )}
-                                </div>
-                            ))}
+                                            {station.status.toUpperCase()}
+                                        </p>
+
+                                        <p className="capacity">Total Capacity: {station.capacity}</p>
+                                        <p className="bikesAvailable">Bikes: {station.numberOfBikes}</p>
+
+                                        {userRole === "admin" && (
+                                            <button
+                                                className="adminStationBtn"
+                                                onClick={(e) => handleSetStationService(station, e)}
+                                            >
+                                                {station.status === "out_of_service" ? "Restore Service" : "Mark Out of Service"}
+                                            </button>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
                         </div>
-                    </div>
+
+                        <div className="mapContainer">
+                            <div ref={mapRef} className="map"></div>
+                        </div>
+                    </>
                 )}
 
                 {currentTab === "billing" && (
@@ -478,17 +557,17 @@ export default function DashboardPage() {
                         <h2>Billing History</h2>
                         <table className="billingTable">
                             <tr className="tableHeader">
-                                <th style={{borderTopLeftRadius:"10px"}}>Date</th>
+                                <th style={{ borderTopLeftRadius: "10px" }}>Date</th>
                                 <th>Amount</th>
-                                <th style={{borderTopRightRadius:"10px"}}>Description</th>
+                                <th style={{ borderTopRightRadius: "10px" }}>Description</th>
                             </tr>
-                        {fakeBillings.map((bill) => (
-                            <tr key={bill.id} className="billingItem">
-                                <td>{bill.date}</td>
-                                <td style={{borderLeft: "1px solid white", borderRight: "1px solid white" }}>${bill.amount.toFixed(2)}</td>
-                                <td>{bill.description}</td>
-                            </tr>
-                        ))}
+                            {fakeBillings.map((bill) => (
+                                <tr key={bill.id} className="billingItem">
+                                    <td>{bill.date}</td>
+                                    <td style={{ borderLeft: "1px solid white", borderRight: "1px solid white" }}>${bill.amount.toFixed(2)}</td>
+                                    <td>{bill.description}</td>
+                                </tr>
+                            ))}
                         </table>
                     </div>
                 )}
@@ -496,6 +575,7 @@ export default function DashboardPage() {
                 {currentTab === "trips" && (
                     <TripHistoryPanel email={email} role={userRole} />
                 )}
+
             </div>
 
             {
