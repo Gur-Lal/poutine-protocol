@@ -91,3 +91,18 @@
     font-style: italic;
     color: #666;
 }
+
+.leftPanel {
+    width: 50%;
+    overflow-y: auto;
+}
+
+.mapContainer {
+    width: 50%;
+    height: 100%;
+}
+
+.map {
+    width: 100%;
+    height: 100%;
+}

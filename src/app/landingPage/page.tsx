@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { DockStation } from "@/domain/models/DockStation";
 import { Bike } from "@/domain/models/Bike";
@@ -9,6 +9,11 @@ import axios from "axios";
 import "../dashboard/dashboard.css";
 import "./landingPage.css";
 
+declare global {
+    interface Window {
+        google: any;
+    }
+}
 export default function LandingPage() {
     const [stations, setStations] = useState<DockStation[]>([]);
     const [loading, setLoading] = useState(true);
@@ -17,6 +22,10 @@ export default function LandingPage() {
     const [bikes, setBikes] = useState<Bike[]>([]);
 
     const router = useRouter();
+
+    // Maps
+    const mapRef = useRef<HTMLDivElement>(null);
+    const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
 
     useEffect(() => {
         const fetchStations = async () => {
@@ -32,6 +41,66 @@ export default function LandingPage() {
 
         fetchStations();
     }, []);
+
+    // Get user location
+    useEffect(() => {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    setUserLocation({
+                        lat: position.coords.latitude,
+                        lng: position.coords.longitude
+                    });
+                },
+                (error) => {
+                    console.log("Error getting location:", error);
+                    setUserLocation({ lat: 45.5017, lng: -73.5673 }); // Default Montreal
+                }
+            );
+        }
+    }, []);
+
+    // Initialize Google Map
+    useEffect(() => {
+        if (!userLocation) return;
+
+        // Check if script already loaded
+        if (window.google && window.google.maps && mapRef.current) {
+            const map = new window.google.maps.Map(mapRef.current, {
+                center: userLocation,
+                zoom: 13,
+            });
+
+            new window.google.maps.Marker({
+                position: userLocation,
+                map: map,
+                title: "Your Location",
+            });
+            return;
+        }
+
+        // Load script if not already loaded
+        if (!document.querySelector('script[src*="maps.googleapis.com"]')) {
+            const script = document.createElement('script');
+            script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}`;
+            script.async = true;
+            script.onload = () => {
+                if (mapRef.current) {
+                    const map = new window.google.maps.Map(mapRef.current, {
+                        center: userLocation,
+                        zoom: 13,
+                    });
+
+                    new window.google.maps.Marker({
+                        position: userLocation,
+                        map: map,
+                        title: "Your Location",
+                    });
+                }
+            };
+            document.head.appendChild(script);
+        }
+    }, [userLocation]);
 
     const fetchBikesByStation = async (stationId: string) => {
         try {
@@ -82,20 +151,26 @@ export default function LandingPage() {
             </header>
 
             <div className="dashboardArea">
-                <div className="stationList">
-                    <p className="title">AVAILABLE STATIONS</p>
-                    {
-                        stations.map((station, index) => (
-                            <div className="stationItem" key={index} onClick={() => handleStationClick(station)}>
-                                <p className="title">{station.name.toUpperCase() || "UNNAMED STATION"}</p>
-                                <p className="address">{station.address}</p>
-                                <p className="status" id={station.status === "empty" ? "empty" : station.status === "occupied" ? "occupied" : station.status === "full" ? "full" : "outOfService"}>{station.status.toUpperCase()}</p>
+                <div className="leftPanel">
+                    <div className="stationList">
+                        <p className="title">AVAILABLE STATIONS</p>
+                        {
+                            stations.map((station, index) => (
+                                <div className="stationItem" key={index} onClick={() => handleStationClick(station)}>
+                                    <p className="title">{station.name.toUpperCase() || "UNNAMED STATION"}</p>
+                                    <p className="address">{station.address}</p>
+                                    <p className="status" id={station.status === "empty" ? "empty" : station.status === "occupied" ? "occupied" : station.status === "full" ? "full" : "outOfService"}>{station.status.toUpperCase()}</p>
 
-                                <p className="capacity">Total Capacity: {station.capacity}</p>
-                                <p className="bikesAvailable">Bikes Available: {station.numberOfBikes}</p>
-                            </div>
-                        ))
-                    }
+                                    <p className="capacity">Total Capacity: {station.capacity}</p>
+                                    <p className="bikesAvailable">Bikes Available: {station.numberOfBikes}</p>
+                                </div>
+                            ))
+                        }
+                    </div>
+                </div>
+
+                <div className="mapContainer">
+                    <div ref={mapRef} className="map"></div>
                 </div>
             </div>
 
