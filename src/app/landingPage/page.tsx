@@ -25,7 +25,10 @@ export default function LandingPage() {
 
     // Maps
     const mapRef = useRef<HTMLDivElement>(null);
+    const mapInstanceRef = useRef<any>(null);
+    const markersRef = useRef<any[]>([]);
     const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+    const [mapReady, setMapReady] = useState(false);
 
     useEffect(() => {
         const fetchStations = async () => {
@@ -42,11 +45,13 @@ export default function LandingPage() {
         fetchStations();
     }, []);
 
-    // Get user location
+    // Get current location
     useEffect(() => {
+        console.log("Location useEffect triggered");
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
                 (position) => {
+                    console.log("Got user location:", position.coords.latitude, position.coords.longitude);
                     setUserLocation({
                         lat: position.coords.latitude,
                         lng: position.coords.longitude
@@ -54,53 +59,185 @@ export default function LandingPage() {
                 },
                 (error) => {
                     console.log("Error getting location:", error);
-                    setUserLocation({ lat: 45.5017, lng: -73.5673 }); // Default Montreal
+                    console.log("Using default Montreal location");
+                    setUserLocation({ lat: 45.5017, lng: -73.5673 });
                 }
             );
+        } else {
+            console.log("No geolocation available, using default");
+            setUserLocation({ lat: 45.5017, lng: -73.5673 });
         }
     }, []);
 
-    // Initialize Google Map
+    // Initialize map with async loading
     useEffect(() => {
-        if (!userLocation) return;
 
-        // Check if script already loaded
-        if (window.google && window.google.maps && mapRef.current) {
-            const map = new window.google.maps.Map(mapRef.current, {
-                center: userLocation,
-                zoom: 13,
-            });
-
-            new window.google.maps.Marker({
-                position: userLocation,
-                map: map,
-                title: "Your Location",
-            });
+        if (!userLocation) {
+            console.log("No user location yet, waiting...");
             return;
         }
 
-        // Load script if not already loaded
-        if (!document.querySelector('script[src*="maps.googleapis.com"]')) {
-            const script = document.createElement('script');
-            script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}`;
-            script.async = true;
-            script.onload = () => {
-                if (mapRef.current) {
+        if (mapInstanceRef.current) {
+            console.log("Map already exists, skipping initialization");
+            return;
+        }
+
+        // Wait for mapRef to be available in the DOM
+        const checkMapRef = setInterval(() => {
+            if (mapRef.current) {
+                console.log("Map ref now available!");
+                clearInterval(checkMapRef);
+
+                let cancelled = false;
+
+                const initMap = async () => {
+                    console.log("Starting map initialization...");
+
+                    // Wait for Google Maps to load
+                    if (!window.google?.maps) {
+                        console.log("Loading Google Maps script...");
+                        try {
+                            await new Promise<void>((resolve, reject) => {
+                                const script = document.createElement('script');
+                                script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}`;
+                                script.async = true;
+                                script.onload = () => {
+                                    console.log("Google Maps script loaded successfully");
+                                    resolve();
+                                };
+                                script.onerror = () => {
+                                    console.error("Failed to load Google Maps script");
+                                    reject(new Error('Failed to load Google Maps'));
+                                };
+                                document.head.appendChild(script);
+                            });
+                        } catch (error) {
+                            console.error("Error loading script:", error);
+                            return;
+                        }
+                    } else {
+                        console.log("Google Maps already loaded");
+                    }
+
+                    if (cancelled) {
+                        return;
+                    }
+
+                    if (!mapRef.current) {
+                        return;
+                    }
+
                     const map = new window.google.maps.Map(mapRef.current, {
                         center: userLocation,
                         zoom: 13,
                     });
 
+                    mapInstanceRef.current = map;
+
+                    // Add user location marker
                     new window.google.maps.Marker({
                         position: userLocation,
                         map: map,
                         title: "Your Location",
+                        icon: {
+                            path: window.google.maps.SymbolPath.CIRCLE,
+                            scale: 8,
+                            fillColor: "#4285F4",
+                            fillOpacity: 1,
+                            strokeColor: "#ffffff",
+                            strokeWeight: 2,
+                        }
                     });
-                }
-            };
-            document.head.appendChild(script);
-        }
+
+                    setMapReady(true);
+                };
+
+
+                initMap().catch((error) => {
+                    console.error("Map initialization error:", error);
+                });
+            }
+        }, 100);
+
+        const timeout = setTimeout(() => {
+            clearInterval(checkMapRef);
+        }, 5000);
+
+        return () => {
+            clearInterval(checkMapRef);
+            clearTimeout(timeout);
+        };
     }, [userLocation]);
+
+    // Add station markers
+    useEffect(() => {
+        if (!mapInstanceRef.current) {
+            console.log("No map instance yet");
+            return;
+        }
+
+        if (!window.google?.maps) {
+            console.log("Google Maps not loaded yet");
+            return;
+        }
+
+        if (stations.length === 0) {
+            console.log("No stations to display yet");
+            return;
+        }
+
+        // Clear old markers
+        markersRef.current.forEach(marker => marker.setMap(null));
+        markersRef.current = [];
+
+        // Add new markers
+        stations.forEach((station, index) => {
+            if (station.coordinatePosition?.latitude && station.coordinatePosition?.longitude) {
+                const marker = new window.google.maps.Marker({
+                    position: {
+                        lat: station.coordinatePosition.latitude,
+                        lng: station.coordinatePosition.longitude
+                    },
+                    map: mapInstanceRef.current,
+                    title: station.name,
+                });
+
+                markersRef.current.push(marker);
+
+                let statusColor;
+                if (station.status === "empty") {
+                    statusColor = "rgb(97, 192, 60)";
+                } else if (station.status === "occupied") {
+                    statusColor = "rgb(187, 192, 60)";
+                } else if (station.status === "full") {
+                    statusColor = "rgb(192, 60, 60)";
+                } else {
+                    statusColor = "rgb(102, 102, 102)";
+                }
+
+                const infoWindow = new window.google.maps.InfoWindow({
+                    content: `<div style="color: black; padding: 0; margin: 0; line-height: 1.4;"><span style="background-color: ${statusColor}; padding: 4px 8px; border-radius: 8px; font-size: 11px; font-weight: bold; color: white; display: inline-block;">${station.status.toUpperCase()}</span><br><b>${station.name}</b><br>Capacity: ${station.capacity}<br>Bikes: ${station.numberOfBikes}</div>`,
+                    disableAutoPan: true,
+                    pixelOffset: new window.google.maps.Size(0, -5)
+                });
+
+                // Show on hover
+                marker.addListener('mouseover', () => {
+                    infoWindow.open(mapInstanceRef.current, marker);
+                });
+
+                // Hide window on leave
+                marker.addListener('mouseout', () => {
+                    infoWindow.close();
+                });
+
+            } else {
+                console.log(`${index + 1}. ${station.name} - NO COORDINATES`);
+            }
+        });
+
+        console.log("Successfully added", markersRef.current.length, "markers");
+    }, [stations, mapReady]);
 
     const fetchBikesByStation = async (stationId: string) => {
         try {
