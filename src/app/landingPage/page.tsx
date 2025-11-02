@@ -231,6 +231,10 @@ export default function LandingPage() {
                     infoWindow.close();
                 });
 
+                marker.addListener('click', () => {
+                    handleStationClick(station);
+                });
+
             } else {
                 console.log(`${index + 1}. ${station.name} - NO COORDINATES`);
             }

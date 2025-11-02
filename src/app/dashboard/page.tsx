@@ -335,6 +335,11 @@ export default function DashboardPage() {
                     infoWindow.close();
                 });
 
+                // Click the marker to view the bikes at the station
+                marker.addListener('click', () => {
+                    handleStationClick(station);
+                });
+
             } else {
                 console.log(`${index + 1}. ${station.name} - NO COORDINATES`);
             }
