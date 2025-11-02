@@ -252,7 +252,10 @@ export default function DashboardPage() {
                             strokeWeight: 2,
                         }
                     });
+
+                    setMapReady(true);
                 };
+
 
                 initMap().catch((error) => {
                     console.error("Map initialization error:", error);
@@ -305,21 +308,26 @@ export default function DashboardPage() {
 
                 markersRef.current.push(marker);
 
+                let statusColor;
+                if (station.status === "empty") {
+                    statusColor = "rgb(97, 192, 60)";
+                } else if (station.status === "occupied") {
+                    statusColor = "rgb(187, 192, 60)";
+                } else if (station.status === "full") {
+                    statusColor = "rgb(192, 60, 60)";
+                } else {
+                    statusColor = "rgb(102, 102, 102)";
+                }
+
                 const infoWindow = new window.google.maps.InfoWindow({
-                    content: `
-                                <div style="color: black;">
-                        <b>${station.name}</b><br>
-                        Capacity: ${station.capacity}<br>
-                        Bikes: ${station.numberOfBikes}
-                    </div>
-                `,
-                    disableAutoPan: true
+                    content: `<div style="color: black; padding: 0; margin: 0; line-height: 1.4;"><span style="background-color: ${statusColor}; padding: 4px 8px; border-radius: 8px; font-size: 11px; font-weight: bold; color: white; display: inline-block;">${station.status.toUpperCase()}</span><br><b>${station.name}</b><br>Capacity: ${station.capacity}<br>Bikes: ${station.numberOfBikes}</div>`,
+                    disableAutoPan: true,
+                    pixelOffset: new window.google.maps.Size(0, -5)
                 });
 
                 // Show on hover
                 marker.addListener('mouseover', () => {
                     infoWindow.open(mapInstanceRef.current, marker);
-
                 });
 
                 // Hide window on leave
