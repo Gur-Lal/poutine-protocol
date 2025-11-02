@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { DockStation } from "@/domain/models/DockStation";
 import { Bike } from "@/domain/models/Bike";
@@ -29,6 +29,12 @@ export default function LandingPage() {
     const markersRef = useRef<any[]>([]);
     const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
     const [mapReady, setMapReady] = useState(false);
+
+    const handleStationClick = useCallback((station: DockStation) => {
+        setSelectedStation(station);
+        setOpenViewMenu(true);
+        fetchBikesByStation(station.id);
+    }, []);
 
     useEffect(() => {
         const fetchStations = async () => {
@@ -234,7 +240,7 @@ export default function LandingPage() {
         });
 
         console.log("Successfully added", markersRef.current.length, "markers");
-    }, [stations, mapReady]);
+    }, [stations, mapReady, handleStationClick]);
 
     const fetchBikesByStation = async (stationId: string) => {
         try {
@@ -243,12 +249,6 @@ export default function LandingPage() {
         } catch (error) {
             console.log("Error fetching bikes:", error);
         }
-    }
-
-    const handleStationClick = (station: DockStation) => {
-        setSelectedStation(station);
-        setOpenViewMenu(true);
-        fetchBikesByStation(station.id);
     }
 
     const handleCloseViewMenu = () => {

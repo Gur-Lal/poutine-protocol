@@ -79,6 +79,13 @@ export default function DashboardPage() {
         }
     }, [bmsCore]);
 
+
+    const handleStationClick = (station: DockStation) => {
+        setSelectedStation(station);
+        setOpenReservationMenu(true);
+        fetchBikesByStation(station.id);
+    }
+
     // ADDED: Subscribe to BMSCore updates for real-time synchronization
     useEffect(() => {
         // Create subscriber to receive updates from BMSCore
@@ -338,7 +345,7 @@ export default function DashboardPage() {
         });
 
         console.log("Successfully added", markersRef.current.length, "markers");
-    }, [stations, mapReady]);
+    }, [stations, mapReady, handleStationClick]);
 
     if (loading) {
         return <p>Loading...</p>;
@@ -371,11 +378,6 @@ export default function DashboardPage() {
         }
     }
 
-    const handleStationClick = (station: DockStation) => {
-        setSelectedStation(station);
-        setOpenReservationMenu(true);
-        fetchBikesByStation(station.id);
-    }
 
     const handleCloseReservationMenu = () => {
         setOpenReservationMenu(false);
