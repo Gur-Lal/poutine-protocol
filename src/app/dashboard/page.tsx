@@ -192,8 +192,6 @@ export default function DashboardPage() {
                 console.log("Map ref now available!");
                 clearInterval(checkMapRef);
 
-                let cancelled = false;
-
                 const initMap = async () => {
                     console.log("Starting map initialization...");
 
@@ -221,10 +219,6 @@ export default function DashboardPage() {
                         }
                     } else {
                         console.log("Google Maps already loaded");
-                    }
-
-                    if (cancelled) {
-                        return;
                     }
 
                     if (!mapRef.current) {
