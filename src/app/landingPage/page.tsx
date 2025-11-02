@@ -205,14 +205,12 @@ export default function LandingPage() {
                 markersRef.current.push(marker);
 
                 let statusColor;
-                if (station.status === "empty") {
-                    statusColor = "rgb(97, 192, 60)";
+                if (station.status === "empty" || station.status === "full") {
+                    statusColor = "rgb(192, 60, 60)";
                 } else if (station.status === "occupied") {
                     statusColor = "rgb(187, 192, 60)";
-                } else if (station.status === "full") {
-                    statusColor = "rgb(192, 60, 60)";
                 } else {
-                    statusColor = "rgb(102, 102, 102)";
+                    statusColor = "rgb(97, 192, 60)";
                 }
 
                 const infoWindow = new window.google.maps.InfoWindow({
@@ -231,6 +229,7 @@ export default function LandingPage() {
                     infoWindow.close();
                 });
 
+                // Click the marker to view the bikes at the station
                 marker.addListener('click', () => {
                     handleStationClick(station);
                 });
