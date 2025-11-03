@@ -478,9 +478,9 @@ export default function DashboardPage() {
                 )}
 
                 {currentTab === "billing" && (
-                    <div className="billingTab">
-                        <h2>Billing History</h2>
-                        
+                    <div>
+                        <h2 style={{margin:"20px"}}>Billing History</h2>
+                        <div className="billingTab">
                         <table className="billingTable">
                             <thead>
                                 <tr className="tableHeader">
@@ -499,7 +499,7 @@ export default function DashboardPage() {
                         ))}
                         </tbody>
                         </table>
-                        
+                        </div>
                     </div>
                 )}
 

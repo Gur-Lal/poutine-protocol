@@ -235,11 +235,12 @@
 }
 
 .billingTab{
-    margin:20px 0 0 30px ;
+    margin:0 0 0 30px ;
     width:100vw;
     display: flex;
     flex-direction: column;
     height: calc(100vh - 100px);
+    align-items: center;
 }
 
 .billingTable{
