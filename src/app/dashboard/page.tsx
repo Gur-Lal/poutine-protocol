@@ -47,6 +47,10 @@ export default function DashboardPage() {
         { id: 4, date: "2025-10-01", amount: 15.5, description: "Bike rental - Station A" },
         { id: 5, date: "2025-10-05", amount: 7.0, description: "Bike rental - Station B" },
         { id: 6, date: "2025-10-12", amount: 20.0, description: "Late return fee" },
+        { id: 7, date: "2025-10-01", amount: 15.5, description: "Bike rental - Station A" },
+        { id: 8, date: "2025-10-05", amount: 7.0, description: "Bike rental - Station B" },
+        { id: 9, date: "2025-10-12", amount: 20.0, description: "Late return fee" },
+        { id: 10, date: "2025-10-01", amount: 15.5, description: "Bike rental - Station A" }
         
     ];
 
@@ -476,12 +480,16 @@ export default function DashboardPage() {
                 {currentTab === "billing" && (
                     <div className="billingTab">
                         <h2>Billing History</h2>
+                        
                         <table className="billingTable">
-                            <tr className="tableHeader">
-                                <th style={{borderTopLeftRadius:"10px"}}>Date</th>
-                                <th>Amount</th>
-                                <th style={{borderTopRightRadius:"10px"}}>Description</th>
-                            </tr>
+                            <thead>
+                                <tr className="tableHeader">
+                                    <th style={{borderTopLeftRadius:"10px"}}>Date</th>
+                                    <th>Amount</th>
+                                    <th style={{borderTopRightRadius:"10px"}}>Description</th>
+                                </tr>
+                            </thead>
+                            <tbody>
                         {fakeBillings.map((bill) => (
                             <tr key={bill.id} className="billingItem">
                                 <td>{bill.date}</td>
@@ -489,7 +497,9 @@ export default function DashboardPage() {
                                 <td>{bill.description}</td>
                             </tr>
                         ))}
+                        </tbody>
                         </table>
+                        
                     </div>
                 )}
 

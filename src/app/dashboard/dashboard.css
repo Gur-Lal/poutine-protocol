@@ -237,33 +237,84 @@
 .billingTab{
     margin:20px 0 0 30px ;
     width:100vw;
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 100px);
 }
 
 .billingTable{
     background-color:rgb(21, 21, 26);
     margin:30px;
     border-radius:10px;
-    padding:20px;
     border-collapse:collapse;
+    display:flex;
     width:80%;
+    flex-direction: column;
+    overflow:hidden;
+    max-height: calc(100vh - 200px);
     justify-self: center;
 }
 
+.tableHeader{
+    display: flex;
+    background-color:rgb(40, 40, 49);
+}
 .tableHeader th{
     padding:20px;
-    background-color:rgb(40, 40, 49);
-    
+    flex:1;
+    text-align: left;
+}
+
+.billingTable thead,
+.billingTable tbody {
+    padding: 0;
+    margin: 0;
+}
+
+.billingTable thead{
+    display: flex;
+    flex-direction: column;
+}
+
+.billingTable tbody{
+    display: block;
+    overflow-y: auto;
+    max-height:calc(100vh - 280px);
+}
+
+.billingTable tbody::-webkit-scrollbar {
+    width: 8px;
+}
+
+.billingTable tbody::-webkit-scrollbar-track {
+    background: rgb(21, 21, 26);
+}
+
+.billingTable tbody::-webkit-scrollbar-thumb {
+    background: rgb(60, 60, 70);
+    border-radius: 4px;
+}
+
+.billingTable tbody::-webkit-scrollbar-thumb:hover {
+    background: rgb(80, 80, 90);
 }
 
 .billingItem{
-    margin:20px;
-    padding:20px 30px;
+    display: flex;
+    margin:0;
+    padding:0;
 }
 
 .billingItem td{
     padding:20px;
-    border-radius:10px;
-    align-items: center;
+    flex:1;
+    text-align: left;
+    border-radius:0;
+}
+
+.billingItem td:nth-child(2) {
+    border-left: 1px solid white;
+    border-right: 1px solid white;
 }
 
 .tripHistoryPanel {
@@ -281,7 +332,7 @@
 }
 
 .activeTab {
-  background-color: #0070f3;
-  color: white;
+    background-color: #0070f3;
+    color: white;
 }
 
