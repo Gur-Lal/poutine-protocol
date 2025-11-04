@@ -164,19 +164,35 @@ export default function TripHistoryPanel({ email, role }: UserData) {
     <div className="tripHistoryPanel">
       
       <h2>Trip History {role === "admin" ? "(All Users)" : ""}</h2>
-      <form ref={formRef} onSubmit={handleSearch}>
-        <input type="text" className="searchBar" name="tripId"placeholder="Enter Trip ID"/>
+      <form ref={formRef} onSubmit={handleSearch} className="filterForm">
+        <div className="inputFieldsBox">
+          <div className="inputLabelBox">
+            <p className="label">Trip ID</p>
+            <input type="text" className="searchBar" name="tripId"placeholder="Enter Trip ID"/>
+          </div>
+          <div className="inputLabelBox">
+            <p className="label">Bike Type</p>
+            <select className="searchBar" name="bikeType" defaultValue="">
+              <option value="">All Bike Types</option>
+              <option value="regular">Regular</option>
+              <option value="ebike">E-Bike</option>
+            </select>
+          </div>
 
-        <select className="searchBar" name="bikeType" defaultValue="">
-          <option value="">All Bike Types</option>
-          <option value="regular">Regular</option>
-          <option value="ebike">E-Bike</option>
-        </select>
+          <div className="inputLabelBox">
+            <p className="label">Start Date</p>
+            <input type="date" className="searchBar" name="startDate" placeholder="Start Date"/>
+          </div>
 
-        <input type="date" name="startDate" placeholder="Start Date"/>
-        <input type="date" name="endDate" placeholder="End Date"/>
-        <button type="submit">Search</button>
-        {searched && <button type="button" onClick={clearSearch}>Clear</button>}
+          <div className="inputLabelBox">
+            <p className="label">End Date</p>
+            <input type="date" className="searchBar" name="endDate" placeholder="End Date"/>
+          </div>
+        </div>
+        <div className="buttonBox">
+          <button type="submit" className="searchButton">Search</button>
+          <button type="button" className="searchButton"onClick={clearSearch} disabled={!searched}>Clear</button>
+        </div>
       </form>
       {searched && filteredTrips.length === 0 && <p>No trips match your search criteria.</p>}
       <table className = "tripHistoryTable">
