@@ -319,18 +319,107 @@
 }
 
 .tripHistoryPanel {
-    margin-top: 20px;
-    padding: 15px;
-    background-color: #000000;
-    border-radius: 8px;
+    margin: 20px 0 0 0;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 100px);
+    align-items: center;
 }
 
-.tripItem {
-    margin:20px;
-    padding:20px 30px;
-    background-color:rgb(21, 21, 26);
-    border-radius:20px;
+.tripHistoryTable {
+    background-color: rgb(21, 21, 26);
+    margin: 30px 0;
+    border-radius: 10px;
+    border-collapse: collapse;
+    border-spacing: 0;
+    display: flex;
+    width: 95%;
+    flex-direction: column;
+    overflow: hidden;
+    max-height: calc(100vh - 200px);
 }
+
+.tripHistoryTable thead {
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+    margin: 0;
+}
+
+.tripTableHeader{
+    display: flex;
+    width: 100%;
+    background-color: rgb(40, 40, 49);
+}
+
+.tripTableHeader th {
+    padding: 20px;
+    text-align: left;
+}
+
+.tripTableHeader th:nth-child(1) { width: 16%; }  
+.tripTableHeader th:nth-child(2) { width: 12%; }  
+.tripTableHeader th:nth-child(3) { width: 16%; }  
+.tripTableHeader th:nth-child(4) { width: 16%; }  
+.tripTableHeader th:nth-child(5) { width: 13%; }  
+.tripTableHeader th:nth-child(6) { width: 13%; }  
+.tripTableHeader th:nth-child(7) { width: 8%; }  
+.tripTableHeader th:nth-child(8) { width: 6%; }
+
+.tripTableHeader th:first-child {
+    border-top-left-radius: 10px;
+}
+
+.tripTableHeader th:last-child {
+    border-top-right-radius: 10px;
+}
+
+.tripHistoryTable tbody{
+    display: block;
+    overflow-y: auto;
+    max-height: calc(100vh - 280px);
+    padding: 0;
+    margin: 0;
+}
+
+.tripHistoryTable tbody::-webkit-scrollbar {
+    width: 8px;
+}
+
+.tripHistoryTable tbody::-webkit-scrollbar-track {
+    background: rgb(21, 21, 26);
+}
+
+.tripHistoryTable tbody::-webkit-scrollbar-thumb {
+    background: rgb(60, 60, 70);
+    border-radius: 4px;
+}
+
+.tripHistoryTable tbody::-webkit-scrollbar-thumb:hover {
+    background: rgb(80, 80, 90);
+}
+
+.tripHistoryTable .tripItem {
+    display: flex;
+    margin: 0;
+    padding: 0;
+    width: 100%;
+}
+
+.tripHistoryTable .tripItem td {
+    padding: 20px;
+    text-align: left;
+}
+
+.tripHistoryTable .tripItem td:nth-child(1) { width: 16%; }
+.tripHistoryTable .tripItem td:nth-child(2) { width: 12%; } 
+.tripHistoryTable .tripItem td:nth-child(3) { width: 16%; } 
+.tripHistoryTable .tripItem td:nth-child(4) { width: 16%; } 
+.tripHistoryTable .tripItem td:nth-child(5) { width: 13%; } 
+.tripHistoryTable .tripItem td:nth-child(6) { width: 13%; } 
+.tripHistoryTable .tripItem td:nth-child(7) { width: 8%; }  
+.tripHistoryTable .tripItem td:nth-child(8) { width: 6%; }
 
 .activeTab {
     background-color: #0070f3;

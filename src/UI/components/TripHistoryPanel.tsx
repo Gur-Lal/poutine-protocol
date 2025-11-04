@@ -16,6 +16,7 @@ interface TripDataAPI {
   startTime: string;  // Dates are strings after JSON conversion
   endTime: string | null;
   status: "active" | "completed";
+  isEBike: boolean;
 }
 
 export default function TripHistoryPanel({ email, role }: UserData) {
@@ -57,25 +58,35 @@ export default function TripHistoryPanel({ email, role }: UserData) {
   return (
     <div className="tripHistoryPanel">
       <h2>Trip History {role === "admin" ? "(All Users)" : ""}</h2>
-      <ul>
-        {trips.map((trip) => (
-          <div key={trip.id} className="tripItem">
-            <p><strong>Bike:</strong> {trip.bikeId}</p>
-            <p><strong>From:</strong> {trip.startStationName || "N/A"} | <strong>To:</strong> {trip.endStationName || "N/A"}</p>
-            <p><strong>Status:</strong> {trip.status.toUpperCase()}</p>
-            <p>
-              <strong>Start:</strong> {new Date(trip.startTime).toLocaleString()} |{" "}
-              <strong>End:</strong> {trip.endTime ? new Date(trip.endTime).toLocaleString() : "Ongoing"}
-            </p>
-            {trip.endTime && (
-              <p>
-                <strong>Duration:</strong>{" "}
-                {((new Date(trip.endTime).getTime() - new Date(trip.startTime).getTime()) / 60000).toFixed(1)} min
-              </p>
-            )}
-          </div>
-        ))}
-      </ul>
+      <table className = "tripHistoryTable">
+        <thead>
+          <tr className="tripTableHeader">
+            <th>Trip ID</th>
+            <th>Rider</th>
+            <th>Start Time</th>
+            <th>End Time</th>
+            <th>Start Station</th>
+            <th>End Station</th>
+            <th>Bike Type</th>
+            <th>Cost</th>
+          </tr>
+        </thead>
+        <tbody>
+          {trips.map((trip) => (
+            <tr key={trip.id} className="tripItem">
+              <td>{trip.id}</td>
+              <td>{trip.email}</td>
+              <td>{new Date(trip.startTime).toLocaleString()}</td>
+              <td>{new Date(trip.endTime!).toLocaleString()}</td>
+              <td>{trip.startStationName}</td>
+              <td>{trip.endStationName}</td>
+              <td>{trip.isEBike ? "E-Bike" : "Regular"}</td>
+              <td> COST </td>
+            </tr>
+          ))
+          }
+        </tbody>
+      </table>
     </div>
   );
 }

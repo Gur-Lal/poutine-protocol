@@ -243,11 +243,16 @@ export default function DashboardPage() {
 
     const unlockBike = async (email: string, bikeId: string, stationId: string, stationName: string) => {
         try {
+            const bike = await axios.get(`/api/getBikeById/${bikeId}`);
+
+            if(bike.data.ok){
+            const isEBike = bike.data.isEBike;
             const response = await axios.post(`/api/unlockBike`, {
                 email: email,
                 bikeId: bikeId,
                 startStationId: stationId,
-                startStationName: stationName
+                startStationName: stationName,
+                isEBike: isEBike
             });
             if (response.data.ok) {
                 bmsCore.publishReservation(userId, bikeId, 'UNLOCKED');
@@ -262,6 +267,7 @@ export default function DashboardPage() {
                 setStartStation(undefined);
                 await fetchStations();
             }
+        }
         } catch (error) {
             console.log("Error unlocking bike:", error);
         }
