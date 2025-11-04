@@ -52,6 +52,7 @@ export class TripService {
     const snap = await this.db
       .collection("trips")
       .where("email", "==", email)
+      .where("status", "==", "completed")
       .orderBy("startTime", "desc")
       .get();
 
