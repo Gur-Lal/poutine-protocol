@@ -144,6 +144,12 @@ export default function TripHistoryPanel({ email, role }: UserData) {
       endDate = new Date(year, month - 1, day); 
     }
 
+    if(endDate && startDate){
+      if(endDate < startDate){
+        alert("Selected end date is before selected start date.");
+        return;
+      }
+    }
     filterTrips(tripId || undefined, bikeType || undefined, startDate, endDate);
   };
 
@@ -162,7 +168,7 @@ export default function TripHistoryPanel({ email, role }: UserData) {
 
   return (
     <div className="tripHistoryPanel">
-      
+      <div className="tripHistoryHeader">
       <h2>Trip History {role === "admin" ? "(All Users)" : ""}</h2>
       <form ref={formRef} onSubmit={handleSearch} className="filterForm">
         <div className="inputFieldsBox">
@@ -194,7 +200,9 @@ export default function TripHistoryPanel({ email, role }: UserData) {
           <button type="button" className="searchButton"onClick={clearSearch} disabled={!searched}>Clear</button>
         </div>
       </form>
-      {searched && filteredTrips.length === 0 && <p>No trips match your search criteria.</p>}
+      {searched && filteredTrips.length === 0 && <p>No trips match your search criteria. Please clear filters.</p>}
+      </div>
+      {(!searched || filteredTrips.length !== 0) &&
       <table className = "tripHistoryTable">
         <thead>
           <tr className="tripTableHeader">
@@ -224,6 +232,7 @@ export default function TripHistoryPanel({ email, role }: UserData) {
           }
         </tbody>
       </table>
+}
     </div>
   );
 }

@@ -339,7 +339,12 @@
     overflow: hidden;
     max-height: calc(100vh - 200px);
 }
-
+.tripHistoryHeader{
+    width: 95%;
+    display:flex;
+    flex-direction:column;
+    align-items: flex-start;
+}
 .tripHistoryTable thead {
     display: flex;
     flex-direction: column;
@@ -428,14 +433,14 @@
 
 .filterForm{
     display:flex;
-    flex-direction:column;
+    flex-direction:row;
     margin-top:20px;
     align-items: center;
+    gap:10px;
 }
 
 .inputFieldsBox{
     display:flex;
-    flex-direction:row;
     margin-bottom:10px;
 }
 
