@@ -5,7 +5,12 @@ import { UserData } from "@/domain/models/UserData";
 import { TripData } from "@/domain/models/TripData";
 import axios from "axios";
 
-interface TripDataAPI {
+type FirebaseTimestamp = {
+  _seconds: number;
+  _nanoseconds: number;
+}
+
+type TripDataAPI = {
   id: string;
   email: string;
   bikeId: string;
@@ -13,8 +18,8 @@ interface TripDataAPI {
   startStationName: string;
   endStationId?: string;
   endStationName: string;
-  startTime: string;  // Dates are strings after JSON conversion
-  endTime: string | null;
+  startTime: FirebaseTimestamp | string;
+  endTime: FirebaseTimestamp | string | null;
   status: "active" | "completed";
   isEBike: boolean;
 }
@@ -40,8 +45,14 @@ export default function TripHistoryPanel({ email, role }: UserData) {
         if (res.data.ok) {
           const tripsData: TripData[] = res.data.trips.map((trip: TripDataAPI) => ({
             ...trip,
-            startTime: new Date(trip.startTime),
-            endTime: trip.endTime ? new Date(trip.endTime) : null,
+            startTime: typeof trip.startTime === 'object' && '_seconds' in trip.startTime
+              ? new Date(trip.startTime._seconds * 1000)
+              : new Date(trip.startTime),
+            endTime: trip.endTime
+              ? (typeof trip.endTime === 'object' && '_seconds' in trip.endTime
+                ? new Date(trip.endTime._seconds * 1000)
+                : new Date(trip.endTime))
+              : null,
           }));
           setTrips(tripsData);
         }
@@ -71,14 +82,40 @@ export default function TripHistoryPanel({ email, role }: UserData) {
         }
       }
 
-      if (startDate && trip.startTime < startDate) {
-        return false;
+      if(startDate) {
+        const searchDate = new Date(startDate);
+        const searchYear = searchDate.getFullYear();
+        const searchMonth = searchDate.getMonth();
+        const searchDay = searchDate.getDate();
+        const normalizedSearchDate = new Date(searchYear, searchMonth, searchDay, 0, 0, 0, 0);
+
+        const tripDate = new Date(trip.startTime);
+        const tripYear = tripDate.getFullYear();
+        const tripMonth = tripDate.getMonth();
+        const tripDay = tripDate.getDate();
+        const normalizedTripDate = new Date(tripYear, tripMonth, tripDay, 0, 0, 0, 0);
+
+        if(normalizedTripDate < normalizedSearchDate){
+          return false;
+        }
       }
 
-      if(endDate && trip.endTime && trip.endTime > endDate){
-        return false;
-      }
+      if(endDate) {
+        if(!trip.endTime){
+          return false;
+        }
 
+        const searchDate = new Date(endDate);
+        const searchYear = searchDate.getFullYear();
+        const searchMonth = searchDate.getMonth();
+        const searchDay = searchDate.getDate();
+        const normalizedSearchDate = new Date(searchYear, searchMonth, searchDay, 23, 59, 59, 999);
+
+        const tripEndDate = new Date(trip.endTime);
+        if(tripEndDate > normalizedSearchDate) {
+          return false;
+        }
+      }
       return true;
     });
     setFilteredTrips(filtered);
@@ -94,8 +131,18 @@ export default function TripHistoryPanel({ email, role }: UserData) {
     const startDateStr = formData.get("startDate") as string;
     const endDateStr = formData.get("endDate") as string;
 
-    const startDate = startDateStr ? new Date(startDateStr) : undefined;
-    const endDate = endDateStr ? new Date(endDateStr) : undefined;
+    let startDate: Date | undefined = undefined;
+    let endDate: Date | undefined = undefined;
+
+    if(startDateStr){
+      const [year, month, day] = startDateStr.split('-').map(Number);
+      startDate = new Date(year, month - 1, day);
+    }
+
+    if (endDateStr) {
+      const [year, month, day] = endDateStr.split('-').map(Number);
+      endDate = new Date(year, month - 1, day); 
+    }
 
     filterTrips(tripId || undefined, bikeType || undefined, startDate, endDate);
   };
