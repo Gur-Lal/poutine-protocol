@@ -243,10 +243,8 @@ export default function DashboardPage() {
 
     const unlockBike = async (email: string, bikeId: string, stationId: string, stationName: string) => {
         try {
-            const bike = await axios.get(`/api/getBikeById/${bikeId}`);
-
-            if(bike.data.ok){
-            const isEBike = bike.data.isEBike;
+            const bikeResponse = await axios.get(`/api/getBikeById/${bikeId}`);
+            const isEBike = bikeResponse.data.isEBike;
             const response = await axios.post(`/api/unlockBike`, {
                 email: email,
                 bikeId: bikeId,
@@ -267,7 +265,6 @@ export default function DashboardPage() {
                 setStartStation(undefined);
                 await fetchStations();
             }
-        }
         } catch (error) {
             console.log("Error unlocking bike:", error);
         }
