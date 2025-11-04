@@ -5,7 +5,12 @@ import { UserData } from "@/domain/models/UserData";
 import { TripData } from "@/domain/models/TripData";
 import axios from "axios";
 
-interface TripDataAPI {
+type FirebaseTimestamp = {
+  _seconds: number;
+  _nanoseconds: number;
+}
+
+type TripDataAPI = {
   id: string;
   email: string;
   bikeId: string;
@@ -13,8 +18,8 @@ interface TripDataAPI {
   startStationName: string;
   endStationId?: string;
   endStationName: string;
-  startTime: string;  // Dates are strings after JSON conversion
-  endTime: string | null;
+  startTime: FirebaseTimestamp | string;
+  endTime: FirebaseTimestamp | string | null;
   status: "active" | "completed";
 }
 
@@ -36,8 +41,14 @@ export default function TripHistoryPanel({ email, role }: UserData) {
         if (res.data.ok) {
           const tripsData: TripData[] = res.data.trips.map((trip: TripDataAPI) => ({
             ...trip,
-            startTime: new Date(trip.startTime),
-            endTime: trip.endTime ? new Date(trip.endTime) : null,
+            startTime: typeof trip.startTime === 'object' && '_seconds' in trip.startTime
+              ? new Date(trip.startTime._seconds * 1000)
+              : new Date(trip.startTime),
+            endTime: trip.endTime
+              ? (typeof trip.endTime === 'object' && '_seconds' in trip.endTime
+                ? new Date(trip.endTime._seconds * 1000)
+                : new Date(trip.endTime))
+              : null,
           }));
           setTrips(tripsData);
         }
