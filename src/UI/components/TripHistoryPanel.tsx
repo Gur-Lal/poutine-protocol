@@ -251,16 +251,17 @@ export default function TripHistoryPanel({ email, role }: UserData) {
           <div className="tripDetails">
             <h2>Trip Details</h2><br/>
             <FaXmark className="xButton" onClick={()=> setSelectedTrip(undefined)}/>
-            <p>Trip ID: {selectedTrip.id}</p>
-            <p>Rider: {selectedTrip.email}</p>
-            <p>Start Time:{selectedTrip.startTime.toLocaleString()} </p>
-            <p>End Time:{selectedTrip.endTime?.toLocaleString()}</p>
-            <p>Start Station: {selectedTrip.startStationName}</p>
-            <p>End Station: {selectedTrip.endStationName}</p>
-            {getDuration(selectedTrip.startTime, selectedTrip.endTime!)}
-            <p>Bike Type: {selectedTrip.isEBike ? "E-Bike" : "Regular"}</p>
-            <p>Cost Breakdown: </p>
-            <p>-------------------------------------------------</p>
+            <div className="details">
+              <p>Trip ID: {selectedTrip.id}</p>
+              <p>Rider: {selectedTrip.email}</p>
+              <p>Start Time:{selectedTrip.startTime.toLocaleString()} </p>
+              <p>End Time:{selectedTrip.endTime?.toLocaleString()}</p>
+              <p>Start Station: {selectedTrip.startStationName}</p>
+              <p>End Station: {selectedTrip.endStationName}</p>
+              {getDuration(selectedTrip.startTime, selectedTrip.endTime!)}
+              <p>Bike Type: {selectedTrip.isEBike ? "E-Bike" : "Regular"}</p>
+              <p>Cost Breakdown: </p>
+            </div>
             <p>Started ride at {selectedTrip.startTime.toLocaleTimeString()}</p>
             <p>{selectedTrip.startStationName}</p>
             <p>|</p>
