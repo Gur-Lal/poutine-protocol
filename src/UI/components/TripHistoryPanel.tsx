@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { UserData } from "@/domain/models/UserData";
 import { TripData } from "@/domain/models/TripData";
+import { FaXmark } from "react-icons/fa6";
 import axios from "axios";
 
 type FirebaseTimestamp = {
@@ -29,7 +30,7 @@ export default function TripHistoryPanel({ email, role }: UserData) {
   const [loading, setLoading] = useState(true);
   const [filteredTrips, setFilteredTrips] = useState<TripData[]>([]);
   const [searched, setSearched] = useState(false);
-
+  const [selectedTrip, setSelectedTrip] = useState<TripData>();
   const formRef = useRef<HTMLFormElement>(null);
   useEffect(() => {
     const fetchTrips = async () => {
@@ -166,6 +167,17 @@ export default function TripHistoryPanel({ email, role }: UserData) {
 
   const displayTrips = searched ? filteredTrips : trips;
 
+  const getDuration = (date1: Date, date2: Date) => {
+    const diffMs = Math.abs(date2.getTime() - date1.getTime());
+    const hours = Math.floor(diffMs / (1000 * 60 * 60));
+    const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((diffMs % (1000 * 60)) / 1000);
+  return (
+    <div>
+      <p>Duration: {hours}h {minutes}m {seconds}s</p>
+    </div>
+  );
+  }
   return (
     <div className="tripHistoryPanel">
       <div className="tripHistoryHeader">
@@ -218,7 +230,7 @@ export default function TripHistoryPanel({ email, role }: UserData) {
         </thead>
         <tbody>
           {displayTrips.map((trip) => (
-            <tr key={trip.id} className="tripItem">
+            <tr key={trip.id} className="tripItem" onClick={()=>setSelectedTrip(trip)}>
               <td>{trip.id}</td>
               <td>{trip.email}</td>
               <td>{new Date(trip.startTime).toLocaleString()}</td>
@@ -232,7 +244,34 @@ export default function TripHistoryPanel({ email, role }: UserData) {
           }
         </tbody>
       </table>
-}
+      }
+      {selectedTrip && (
+        <div>
+          <div className="background" onClick={()=>setSelectedTrip(undefined)}></div>
+          <div className="tripDetails">
+            <h2>Trip Details</h2><br/>
+            <FaXmark className="xButton" onClick={()=> setSelectedTrip(undefined)}/>
+            <p>Trip ID: {selectedTrip.id}</p>
+            <p>Rider: {selectedTrip.email}</p>
+            <p>Start Time:{selectedTrip.startTime.toLocaleString()} </p>
+            <p>End Time:{selectedTrip.endTime?.toLocaleString()}</p>
+            <p>Start Station: {selectedTrip.startStationName}</p>
+            <p>End Station: {selectedTrip.endStationName}</p>
+            {getDuration(selectedTrip.startTime, selectedTrip.endTime!)}
+            <p>Bike Type: {selectedTrip.isEBike ? "E-Bike" : "Regular"}</p>
+            <p>Cost Breakdown: </p>
+            <p>-------------------------------------------------</p>
+            <p>Started ride at {selectedTrip.startTime.toLocaleTimeString()}</p>
+            <p>{selectedTrip.startStationName}</p>
+            <p>|</p>
+            <p>|</p>
+            <p>|</p>
+            <p>|</p>
+            <p>Ended ride at {selectedTrip.endTime!.toLocaleTimeString()}</p>
+            <p>{selectedTrip.endStationName}</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

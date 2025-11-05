@@ -410,8 +410,12 @@
     margin: 0;
     padding: 0;
     width: 100%;
+    cursor:pointer;
 }
 
+.tripHistoryTable .tripItem:hover{
+    background-color:rgb(52, 52, 61);
+}
 .tripHistoryTable .tripItem td {
     padding: 20px;
     text-align: left;
@@ -490,4 +494,16 @@
     background-color:rgb(177, 177, 177);
     color:rgb(78, 77, 77);
     box-shadow:none;
+}
+
+.tripDetails{
+    position:absolute;
+    z-index:2;
+    background-color:white;
+    border-radius:10px;
+    color:black;
+    left: 50%;
+    top:50%;
+    transform: translate(-50%, -50%);
+    padding: 40px;
 }
