@@ -1,3 +1,5 @@
+import { PriceBreakdown } from "./PriceBreakdown";
+
 export type BillingStatus = "pending" | "paid" | "failed";
 
 export interface BillingData {
@@ -11,6 +13,7 @@ export interface BillingData {
   status: BillingStatus;
   stripeSessionId?: string;
   stripePaymentIntentId?: string;
+  priceBreakdown?: PriceBreakdown;
 }
 
 export class Billing {
@@ -24,6 +27,7 @@ export class Billing {
   status: BillingStatus;
   stripeSessionId?: string;
   stripePaymentIntentId?: string;
+priceBreakdown?: PriceBreakdown;
 
   constructor(data: BillingData & { id: string }) {
     this.id = data.id;
@@ -36,6 +40,7 @@ export class Billing {
     this.status = data.status;
     this.stripeSessionId = data.stripeSessionId;
     this.stripePaymentIntentId = data.stripePaymentIntentId;
+    this.priceBreakdown = data.priceBreakdown;
   }
 
   isPaid(): boolean {

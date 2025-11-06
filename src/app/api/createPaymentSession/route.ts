@@ -97,9 +97,43 @@ export async function POST(req: Request) {
     // Round to 2 decimal places
     amount = Math.round(amount * 100) / 100;
 
-    // Update trip with cost
+    let priceBreakdown;
+
+    if (pricingPlan.toLowerCase() === "monthly") {
+      priceBreakdown = {
+        basePrice: 0,
+        perMinutePrice: 0,
+        eBikeSurcharge: 0,
+        isMonthlySubscription: true,
+        total: 0
+      };
+    } else {
+      let basePrice = 0;
+      let perMinuteRate = 0;
+      let eBikeSurcharge = 0;
+
+      if (isEBike) {
+        basePrice = 2;
+        perMinuteRate = 0.15;
+        eBikeSurcharge = 1;
+      } else {
+        basePrice = 1.5;
+        perMinuteRate = 0.10;
+        eBikeSurcharge = 0;
+      }
+
+      priceBreakdown = {
+        basePrice: basePrice,
+        perMinutePrice: Math.round(durationMinutes * perMinuteRate * 100) / 100,
+        eBikeSurcharge: eBikeSurcharge,
+        isMonthlySubscription: false,
+        total: amount
+      };
+    }
+
+    // Update trip with price breakdown
     await adminDb.collection("trips").doc(tripId).update({
-      cost: amount
+      priceBreakdown: priceBreakdown
     });
 
     const description = `Bike rental: ${durationMinutes.toFixed(1)} minutes (${isEBike ? 'E-Bike' : 'Regular Bike'}) - ${tripData.startStationName || 'Unknown'} to ${tripData.endStationName || 'Unknown'}`;

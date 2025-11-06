@@ -225,7 +225,8 @@ export default function TripHistoryPanel({ email, role }: UserData) {
             <th>Start Station</th>
             <th>End Station</th>
             <th>Bike Type</th>
-            <th>Cost</th>
+            <th>Total Cost</th>
+            <th>Breakdown</th>
           </tr>
         </thead>
         <tbody>
@@ -238,7 +239,18 @@ export default function TripHistoryPanel({ email, role }: UserData) {
               <td>{trip.startStationName}</td>
               <td>{trip.endStationName}</td>
               <td>{trip.isEBike ? "E-Bike" : "Regular"}</td>
-              <td>${trip.cost?.toFixed(2) || '0.00'}</td>
+              <td>${trip.priceBreakdown?.total.toFixed(2) || '0.00'}</td>
+              <td style={{ fontSize: "12px" }}>
+                {trip.priceBreakdown?.isMonthlySubscription ? (
+                  <span>Monthly Plan</span>
+                ) : (
+                  <div>
+                    Base: ${trip.priceBreakdown?.basePrice.toFixed(2)}<br/>
+                    Per Min: ${trip.priceBreakdown?.perMinutePrice.toFixed(2)}<br/>
+                    {trip.priceBreakdown?.eBikeSurcharge ? `E-Bike: $${trip.priceBreakdown.eBikeSurcharge.toFixed(2)}` : ''}
+                  </div>
+                )}
+              </td>
             </tr>
           ))
           }

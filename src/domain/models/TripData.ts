@@ -1,3 +1,5 @@
+import { PriceBreakdown } from "./PriceBreakdown";
+
 export interface TripData {
   id?: string;
   email: string;
@@ -10,5 +12,5 @@ export interface TripData {
   endTime: Date | null;
   status: "active" | "completed";
   isEBike: boolean;
-  cost?: number;
+  priceBreakdown?: PriceBreakdown;
 }
