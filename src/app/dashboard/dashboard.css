@@ -40,9 +40,24 @@
 }
 
 .dashboardArea{
-    display:flex;
-    flex:1;
+    display: flex;
+    flex: 1;
     height: calc(100vh - 60px);
+}
+
+.leftPanel{
+    width: 50%;
+    overflow-y: auto;
+}
+
+.mapContainer{
+    width: 50%;
+    height: 100%;
+}
+
+.map{
+    width: 100%;
+    height: 100%;
 }
 
 .title{
