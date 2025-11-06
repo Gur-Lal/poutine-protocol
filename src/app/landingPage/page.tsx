@@ -210,14 +210,8 @@ export default function LandingPage() {
 
                 markersRef.current.push(marker);
 
-                let statusColor;
-                if (station.status === "empty" || station.status === "full") {
-                    statusColor = "rgb(192, 60, 60)";
-                } else if (station.status === "occupied") {
-                    statusColor = "rgb(187, 192, 60)";
-                } else {
-                    statusColor = "rgb(97, 192, 60)";
-                }
+                const fullness = (station.numberOfBikes / station.capacity) * 100;
+                const statusColor = getStationColor(station);
 
                 const infoWindow = new window.google.maps.InfoWindow({
                     content: `<div style="color: black; padding: 0; margin: 0; line-height: 1.4;"><span style="background-color: ${statusColor}; padding: 4px 8px; border-radius: 8px; font-size: 11px; font-weight: bold; color: white; display: inline-block;">${station.status.toUpperCase()}</span><br><b>${station.name}</b><br>Capacity: ${station.capacity}<br>Bikes: ${station.numberOfBikes}</div>`,
@@ -280,6 +274,19 @@ export default function LandingPage() {
         router.push(route);
     }
 
+    function getStationColor(station: DockStation): string {
+        if (!station.capacity || station.capacity === 0) return "gray";
+        const fullness = (station.numberOfBikes / station.capacity) * 100;
+
+        if (fullness === 0 || fullness === 100) {
+            return "rgb(192, 60, 60)";
+        } else if (fullness < 25 || fullness > 85) {
+            return "rgb(187, 192, 60)";
+        } else {
+            return "rgb(97, 192, 60)";
+        }
+    }
+
     if (loading) {
         return <p>Loading stations...</p>;
     }
@@ -320,16 +327,22 @@ export default function LandingPage() {
                 </div>
             </header>
 
-            {currentTab === "about" && (
-                <div className="aboutSection">
-                    <h1 className="aboutTitle">Ride Freely. Explore Montreal.</h1>
-                    <p className="aboutSubtitle">
-                        Pedal to the MTL is a community-driven bike share designed for convenience,
-                        sustainability, and discovering the city on your own terms.
-                    </p>
+            <div className="dashboardArea">
+                <div className="leftPanel">
+                    <div className="stationList">
+                        <p className="title">AVAILABLE STATIONS</p>
+                        {
+                            stations.map((station, index) => (
+                                <div className="stationItem" key={index} onClick={() => handleStationClick(station)}>
+                                    <p className="title">{station.name.toUpperCase() || "UNNAMED STATION"}</p>
+                                    <p className="address">{station.address}</p>
+                                    <p className="status" style={{backgroundColor: getStationColor(station)}}>{station.status.toUpperCase()}</p>
 
-                    <div className="aboutGif">
-                        <img src="/cycling.gif" alt="Cycling animation" />
+                                    <p className="capacity">Total Capacity: {station.capacity}</p>
+                                    <p className="bikesAvailable">Bikes Available: {station.numberOfBikes}</p>
+                                </div>
+                            ))
+                        }
                     </div>
                     
                     <div className="aboutStats">
