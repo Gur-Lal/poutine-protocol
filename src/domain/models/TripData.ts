@@ -10,4 +10,5 @@ export interface TripData {
   endTime: Date | null;
   status: "active" | "completed";
   isEBike: boolean;
+  cost?: number;
 }

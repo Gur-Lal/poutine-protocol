@@ -40,6 +40,8 @@ export default function DashboardPage() {
     const [startStation, setStartStation] = useState<DockStation>();
     const [showPaymentModal, setShowPaymentModal] = useState(false);
     const [paymentTripId, setPaymentTripId] = useState<string>("");
+    const [billings, setBillings] = useState<BillingRecord[]>([]);
+    const [loadingBillings, setLoadingBillings] = useState(false);
 
     // Admin states
     const [userRole, setUserRole] = useState("");
@@ -59,6 +61,16 @@ export default function DashboardPage() {
         { id: 6, date: "2025-10-12", amount: 20.0, description: "Late return fee" },
 
     ];
+
+    interface BillingRecord {
+        id: string;
+        tripId: string;
+        amount: number;
+        date: string;
+        description: string;
+        status: "pending" | "paid" | "failed";
+    }
+
 
     // Maps
     const mapRef = useRef<HTMLDivElement>(null);
@@ -88,6 +100,26 @@ export default function DashboardPage() {
         setOpenReservationMenu(true);
         fetchBikesByStation(station.id);
     }
+
+    const fetchBillings = async () => {
+        if (!email) return;
+        
+        setLoadingBillings(true);
+        try {
+            const response = await fetch(`/api/getBillings?email=${encodeURIComponent(email)}`);
+            const data = await response.json();
+            
+            if (data.ok) {
+            setBillings(data.billings);
+            } else {
+            console.error("Error fetching billings:", data.error);
+            }
+        } catch (error) {
+            console.error("Error fetching billings:", error);
+        } finally {
+            setLoadingBillings(false);
+        }
+    };
 
     // ADDED: Subscribe to BMSCore updates for real-time synchronization
     useEffect(() => {
@@ -366,6 +398,51 @@ export default function DashboardPage() {
             markersRef.current = [];
             setMapReady(false);
         }
+    }, [currentTab]);
+
+    useEffect(() => {
+        if (email && currentTab === "billing") {
+            fetchBillings();
+        }
+    }, [email, currentTab]);
+
+    useEffect(() => {
+        const handlePaymentSuccess = async () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const paymentStatus = urlParams.get('payment');
+            const tripId = urlParams.get('trip');
+
+            if (paymentStatus === 'success' && tripId) {
+            console.log('Payment successful for trip:', tripId);
+            
+            try {
+                const response = await fetch('/api/markBillingPaid', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ tripId }),
+                });
+
+                const data = await response.json();
+                
+                if (data.ok) {
+                console.log('Billing marked as paid');
+                // Refresh billings
+                if (currentTab === 'billing') {
+                    fetchBillings();
+                }
+                }
+            } catch (error) {
+                console.error('Error marking billing as paid:', error);
+            }
+
+            // Clean up URL
+            window.history.replaceState({}, '', '/dashboard');
+            }
+        };
+
+        handlePaymentSuccess();
     }, [currentTab]);
 
     if (loading) {
@@ -725,27 +802,63 @@ export default function DashboardPage() {
                     <div>
                         <h2 style={{ margin: "20px" }}>Billing History</h2>
                         <div className="billingTab">
+                        {loadingBillings ? (
+                            <p style={{ textAlign: "center", padding: "40px" }}>Loading billing history...</p>
+                        ) : billings.length === 0 ? (
+                            <p style={{ textAlign: "center", padding: "40px" }}>No billing records found.</p>
+                        ) : (
                             <table className="billingTable">
                                 <thead>
                                     <tr className="tableHeader">
-                                        <th style={{ borderTopLeftRadius: "10px" }}>Date</th>
-                                        <th>Amount</th>
-                                        <th style={{ borderTopRightRadius: "10px" }}>Description</th>
+                                    <th style={{ borderTopLeftRadius: "10px" }}>Date</th>
+                                    <th>Trip ID</th>
+                                    <th>Amount</th>
+                                    <th>Status</th>
+                                    <th style={{ borderTopRightRadius: "10px" }}>Description</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {fakeBillings.map((bill) => (
-                                        <tr key={bill.id} className="billingItem">
-                                            <td>{bill.date}</td>
-                                            <td style={{ borderLeft: "1px solid white", borderRight: "1px solid white" }}>${bill.amount.toFixed(2)}</td>
-                                            <td>{bill.description}</td>
-                                        </tr>
+                                    {billings.map((bill) => (
+                                    <tr key={bill.id} className="billingItem">
+                                        <td>{new Date(bill.date).toLocaleDateString()}</td>
+                                        <td style={{ borderLeft: "1px solid white", borderRight: "1px solid white", fontFamily: "monospace", fontSize: "12px" }}>
+                                        {bill.tripId}
+                                        </td>
+                                        <td style={{ borderRight: "1px solid white" }}>
+                                        ${bill.amount.toFixed(2)}
+                                        </td>
+                                        <td style={{ borderRight: "1px solid white" }}>
+                                        <span 
+                                            style={{
+                                            padding: "4px 12px",
+                                            borderRadius: "6px",
+                                            fontSize: "12px",
+                                            fontWeight: "600",
+                                            backgroundColor: 
+                                                bill.status === "paid" ? "rgba(15, 103, 22, 0.2)" : 
+                                                bill.status === "pending" ? "rgba(255, 165, 0, 0.2)" : 
+                                                "rgba(255, 0, 0, 0.2)",
+                                            color: 
+                                                bill.status === "paid" ? "#0f6716" : 
+                                                bill.status === "pending" ? "#ff8c00" : 
+                                                "#ff0000"
+                                            }}
+                                        >
+                                            {bill.status.toUpperCase()}
+                                        </span>
+                                        </td>
+                                        <td>{bill.description}</td>
+                                    </tr>
                                     ))}
                                 </tbody>
                             </table>
+                        )}
                         </div>
                     </div>
                 )}
+
+
+
 
                 {currentTab === "trips" && (
                     <TripHistoryPanel email={email} role={userRole} />

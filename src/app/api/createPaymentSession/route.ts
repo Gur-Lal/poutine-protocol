@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
 import { adminDb } from "@/data/firebaseAdmin";
 import { StripePaymentService } from "@/domain/services/stripePaymentService";
+import { BillingService } from "@/domain/services/billingService";
 
 const paymentService = new StripePaymentService();
+const billingService = new BillingService(adminDb);
 
 export async function POST(req: Request) {
   try {
@@ -27,7 +29,7 @@ export async function POST(req: Request) {
       );
     }
     
-    // Fetch user to get pricing plan
+    // Fetch user to get pricing plan and userId
     const userSnapshot = await adminDb
       .collection("users")
       .where("email", "==", email)
@@ -42,7 +44,8 @@ export async function POST(req: Request) {
     }
 
     const userData = userSnapshot.docs[0].data();
-    const pricingPlan = userData.pricingPlan || "regular"; // default to regular
+    const userId = userSnapshot.docs[0].id;
+    const pricingPlan = userData.pricingPlan || "regular";
 
     // Fetch bike to determine if it's an e-bike
     const bikeDoc = await adminDb.collection("bikes").doc(tripData.bikeId).get();
@@ -94,13 +97,32 @@ export async function POST(req: Request) {
     // Round to 2 decimal places
     amount = Math.round(amount * 100) / 100;
 
-    // For monthly subscribers, skip payment
+    // Update trip with cost
+    await adminDb.collection("trips").doc(tripId).update({
+      cost: amount
+    });
+
+    const description = `Bike rental: ${durationMinutes.toFixed(1)} minutes (${isEBike ? 'E-Bike' : 'Regular Bike'}) - ${tripData.startStationName || 'Unknown'} to ${tripData.endStationName || 'Unknown'}`;
+
+    // For monthly subscribers, create a $0 billing record and skip payment
     if (pricingPlan.toLowerCase() === "monthly") {
+      await billingService.createBilling({
+        userId,
+        email,
+        tripId,
+        amount: 0,
+        description,
+        date: new Date(),
+        status: "paid", // Monthly subscriptions are already paid
+      });
+
       return NextResponse.json({
         ok: true,
         amount: 0,
         skipPayment: true,
-        message: "Monthly subscription - no charge for this trip"
+        message: "Monthly subscription - no charge for this trip",
+        durationMinutes: durationMinutes.toFixed(1),
+        pricingPlan
       });
     }
 
@@ -110,7 +132,18 @@ export async function POST(req: Request) {
       currency: "cad",
       tripId,
       email,
-      description: `Bike rental: ${durationMinutes.toFixed(1)} minutes (${isEBike ? 'E-Bike' : 'Regular Bike'})`
+      description
+    });
+
+    // Create billing record with "pending" status
+    await billingService.createBilling({
+      userId,
+      email,
+      tripId,
+      amount,
+      description,
+      date: new Date(),
+      status: "paid",  // ← Changed from "pending"
     });
 
     return NextResponse.json({

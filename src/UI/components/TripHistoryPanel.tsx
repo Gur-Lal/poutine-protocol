@@ -238,7 +238,7 @@ export default function TripHistoryPanel({ email, role }: UserData) {
               <td>{trip.startStationName}</td>
               <td>{trip.endStationName}</td>
               <td>{trip.isEBike ? "E-Bike" : "Regular"}</td>
-              <td> COST </td>
+              <td>${trip.cost?.toFixed(2) || '0.00'}</td>
             </tr>
           ))
           }
