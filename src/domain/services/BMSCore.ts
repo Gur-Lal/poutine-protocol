@@ -1,5 +1,6 @@
 import { DockStation } from "@/domain/models/DockStation";
 import { Bike } from "@/domain/models/Bike";
+import { Firestore } from "firebase-admin/firestore";
 
 // Subscriber Interface - Components implement this to receive updates
 export interface Subscriber {
@@ -43,41 +44,26 @@ export interface SystemUpdate {
 
 // BMSCore - Singleton class managing the entire Bike Management System
 export class BMSCore {
-    // Singleton instance
-    private static instance: BMSCore;
 
     // Subscriber management
     private subscribers: Map<string, Subscriber> = new Map();
 
     // System state
-    private stations: DockStation[] = [];
-    private bikesByStation: Map<string, Bike[]> = new Map();
+    private db: Firestore;
 
-    private constructor() {
+    constructor(db: Firestore) {
+        this.db = db;
         console.log('BMSCore initialized');
     }
 
-    public static getInstance(): BMSCore {
-        if (!BMSCore.instance) {
-            BMSCore.instance = new BMSCore();
-        }
-        return BMSCore.instance;
-    }
-
-    // OBSERVER PATTERN METHODS=
+    // OBSERVER PATTERN METHODS
 
     public subscribe(subscriberId: string, subscriber: Subscriber): void {
         this.subscribers.set(subscriberId, subscriber);
         console.log(`Subscriber '${subscriberId}' added. Total subscribers: ${this.subscribers.size}`);
 
         // Send initial data to new subscriber
-        if (this.stations.length > 0) {
-            subscriber.update({
-                type: 'STATIONS_UPDATE',
-                stations: this.stations,
-                timestamp: new Date()
-            });
-        }
+        this.sendInitialData(subscriber);
     }
 
     public unsubscribe(subscriberId: string): void {
@@ -103,11 +89,22 @@ export class BMSCore {
         console.log(`Successfully notified ${notifiedCount}/${this.subscribers.size} subscribers`);
     }
 
+    // Fetch daa from the DB
+    private async sendInitialData(subscriber: Subscriber): Promise<void> {
+        const stations = await this.fetchStationsFromDB();
+        if (stations.length > 0) {
+            subscriber.update({
+                type: 'STATIONS_UPDATE',
+                stations: stations,
+                timestamp: new Date()
+            });
+        }
+    }
+
     // STATION MANAGEMENT 
 
-    public publishStations(stations: DockStation[]): void {
-        this.stations = stations;
-
+    public async publishStations(): Promise<void> {
+        const stations = await this.fetchStationsFromDB();
         const updateData: StationsUpdate = {
             type: 'STATIONS_UPDATE',
             stations: stations,
@@ -117,48 +114,53 @@ export class BMSCore {
         this.notifySubscribers(updateData);
     }
 
-    // Update a specific station and notify subscribers
-    public updateStation(stationId: string, updatedStation: DockStation): void {
-        const index = this.stations.findIndex(s => s.id === stationId);
 
-        if (index !== -1) {
-            this.stations[index] = updatedStation;
-            console.log(`Station '${updatedStation.name}' updated`);
-            this.publishStations(this.stations);
-        } else {
-            console.warn(`Station with ID '${stationId}' not found`);
+    private async fetchStationsFromDB(): Promise<DockStation[]> {
+        const snapshot = await this.db.collection('stations').get();
+        return snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+        } as DockStation));
+    }
+
+    // Update a specific station and notify subscribers
+    public async updateStation(stationId: string, updates: Partial<DockStation>): Promise<void> {
+        await this.db.collection('stations').doc(stationId).update(updates);
+
+        const updatedStation = await this.db.collection('stations').doc(stationId).get();
+
+        if (updatedStation.exists) {
+            console.log(`Station updated in database`);
+            await this.publishStations();
         }
     }
 
-    // Add a new station and notify subscribers
-    public addStation(station: DockStation): void {
-        this.stations.push(station);
-        console.log(`Station '${station.name}' added`);
-        this.publishStations(this.stations);
+    public async addStation(station: DockStation): Promise<void> {
+        await this.db.collection('stations').add(station);
+        console.log(`Station '${station.name}' added to database`);
+        await this.publishStations();
     }
 
     // Remove a station and notify subscribers
-    public removeStation(stationId: string): void {
-        const beforeLength = this.stations.length;
-        this.stations = this.stations.filter(s => s.id !== stationId);
-
-        if (this.stations.length < beforeLength) {
-            console.log(`Station removed`);
-            this.publishStations(this.stations);
-        }
+    public async removeStation(stationId: string): Promise<void> {
+        await this.db.collection('stations').doc(stationId).delete();
+        console.log(`Station removed from database`);
+        await this.publishStations();
     }
 
-    public getStations(): DockStation[] {
-        return this.stations;
+    public async getStations(): Promise<DockStation[]> {
+        return this.fetchStationsFromDB();
     }
 
-    public getStation(stationId: string): DockStation | undefined {
-        return this.stations.find(s => s.id === stationId);
+    public async getStation(stationId: string): Promise<DockStation | undefined> {
+        const doc = await this.db.collection('stations').doc(stationId).get();
+        if (!doc.exists) return undefined;
+        return { id: doc.id, ...doc.data() } as DockStation;
     }
 
     // BIKE MANAGEMENT
-    public publishBikes(stationId: string, bikes: Bike[]): void {
-        this.bikesByStation.set(stationId, bikes);
+    public async publishBikes(stationId: string): Promise<void> {
+        const bikes = await this.fetchBikesFromDB(stationId);
 
         const updateData: BikeUpdate = {
             type: 'BIKE_UPDATE',
@@ -170,8 +172,19 @@ export class BMSCore {
         this.notifySubscribers(updateData);
     }
 
-    public getBikes(stationId: string): Bike[] | undefined {
-        return this.bikesByStation.get(stationId);
+    private async fetchBikesFromDB(stationId: string): Promise<Bike[]> {
+        const snapshot = await this.db.collection('bikes')
+            .where('stationId', '==', stationId)
+            .get();
+
+        return snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+        } as Bike));
+    }
+
+    public async getBikes(stationId: string): Promise<Bike[]> {
+        return this.fetchBikesFromDB(stationId);
     }
 
     // RESERVATIONS
@@ -214,6 +227,3 @@ export class BMSCore {
         return Array.from(this.subscribers.keys());
     }
 }
-
-// Export singleton instance for easy access
-export const bmsCore = BMSCore.getInstance();
