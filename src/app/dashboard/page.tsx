@@ -40,6 +40,7 @@ export default function DashboardPage() {
     const [startStation, setStartStation] = useState<DockStation>();
     const [showPaymentModal, setShowPaymentModal] = useState(false);
     const [paymentTripId, setPaymentTripId] = useState<string>("");
+    const [onBikeTrip, setOnBikeTrip] = useState(false);
 
     // Admin states
     const [userRole, setUserRole] = useState("");
@@ -349,8 +350,19 @@ export default function DashboardPage() {
         console.log("Successfully added", markersRef.current.length, "markers");
     }, [stations, mapReady, handleStationClick]);
 
+    const refreshActiveTrip = async (email: string) => {
+        try {
+            const response = await axios.get(`/api/trips/active/${email}`);
+            setOnBikeTrip(response.data.trip !== null);
+        } catch (error) {
+            console.log("Error fetching bikes:", error);
+        }
+    }
+
     useEffect(() => {
-        if (currentTab !== "stations") {
+        if (currentTab === "stations") {
+            refreshActiveTrip(email);
+        } else {
             // Clear map when leaving stations tab
             if (mapInstanceRef.current) {
                 console.log("Leaving stations tab - clearing map");
@@ -360,7 +372,7 @@ export default function DashboardPage() {
             markersRef.current = [];
             setMapReady(false);
         }
-    }, [currentTab]);
+    }, [currentTab, email]);
 
     if (loading) {
         return <p>Loading...</p>;
@@ -478,9 +490,7 @@ export default function DashboardPage() {
                     "Your bike has been successfully unlocked. Ride safely!"
                 );
                 setShowReservations(false);
-                setReservation(undefined);
-                setReservedBikeId("");
-                setStartStation(undefined);
+                setOnBikeTrip(true);
                 await fetchStations();
             }
         } catch (error) {
@@ -503,8 +513,10 @@ export default function DashboardPage() {
                     `Bike returned`,
                     `Your bike has been successfully returned to station: ${selectedStation?.name}`
                 );
-                setReservedBikeId("");
                 setReservation(undefined);
+                setReservedBikeId("");
+                setStartStation(undefined);
+                setOnBikeTrip(false);
                 handleCloseReservationMenu();
                 await fetchStations();
                 
@@ -802,7 +814,7 @@ export default function DashboardPage() {
                                     </button>
                                     <button className="actionButton" onClick={() => {
                                         returnBike(email, reservedBikeId, selectedStation.id);
-                                    }} disabled={!(reservedBikeId !== "")}> RETURN
+                                    }} disabled={!(onBikeTrip)}> RETURN
                                     </button>
                                 </div>
                             )}
