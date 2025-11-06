@@ -131,7 +131,7 @@ export default function NotificationsPage() {
     }
 
     return (
-        <div>
+        <div className="notificationsContainer">
             <div className="notificationsHeader">
                 <button type="button" title="Go back" onClick={() => router.back()}>
                     <ArrowLeft />
@@ -140,24 +140,22 @@ export default function NotificationsPage() {
                     <Bell /> Notifications
                 </h1>
             </div>
-            <div className="notificationsContainer">
-                <div className="notificationsArea">
-                    {notifications.length === 0 ? (
-                        <div className="emptyState">
-                            You have no notifications
-                        </div>
-                    ) : (
-                        <div className="notificationsList">
-                            {notifications.map((notification) => (
-                                <NotificationCard
-                                    key={notification.id}
-                                    {...notification}
-                                    onDismiss={() => dismissNotification(notification.id)}
-                                />
-                            ))}
-                        </div>
-                    )}
-                </div>
+            <div className="notificationsArea">
+                {notifications.length === 0 ? (
+                    <div className="emptyState">
+                        You have no notifications
+                    </div>
+                ) : (
+                    <div className="notificationsList">
+                        {notifications.map((notification) => (
+                            <NotificationCard
+                                key={notification.id}
+                                {...notification}
+                                onDismiss={() => dismissNotification(notification.id)}
+                            />
+                        ))}
+                    </div>
+                )}
             </div>
         </div>
     );
