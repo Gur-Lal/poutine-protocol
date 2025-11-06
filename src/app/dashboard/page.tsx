@@ -191,6 +191,11 @@ export default function DashboardPage() {
             return;
         }
 
+        if (currentTab !== "stations") {
+            console.log("Not on stations tab, skipping map init");
+            return;
+        }
+
         if (mapInstanceRef.current) {
             console.log("Map already exists, skipping initialization");
             return;
@@ -275,7 +280,7 @@ export default function DashboardPage() {
             clearInterval(checkMapRef);
             clearTimeout(timeout);
         };
-    }, [userLocation]);
+    }, [userLocation, currentTab]);
 
     // Add station markers
     useEffect(() => {
@@ -349,6 +354,19 @@ export default function DashboardPage() {
 
         console.log("Successfully added", markersRef.current.length, "markers");
     }, [stations, mapReady, handleStationClick]);
+
+    useEffect(() => {
+        if (currentTab !== "stations") {
+            // Clear map when leaving stations tab
+            if (mapInstanceRef.current) {
+                console.log("Leaving stations tab - clearing map");
+                mapInstanceRef.current = null;
+            }
+            markersRef.current.forEach(marker => marker.setMap(null));
+            markersRef.current = [];
+            setMapReady(false);
+        }
+    }, [currentTab]);
 
     if (loading) {
         return <p>Loading...</p>;
@@ -705,26 +723,26 @@ export default function DashboardPage() {
 
                 {currentTab === "billing" && (
                     <div>
-                        <h2 style={{margin:"20px"}}>Billing History</h2>
+                        <h2 style={{ margin: "20px" }}>Billing History</h2>
                         <div className="billingTab">
-                        <table className="billingTable">
-                            <thead>
-                                <tr className="tableHeader">
-                                    <th style={{borderTopLeftRadius:"10px"}}>Date</th>
-                                    <th>Amount</th>
-                                    <th style={{borderTopRightRadius:"10px"}}>Description</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                        {fakeBillings.map((bill) => (
-                            <tr key={bill.id} className="billingItem">
-                                <td>{bill.date}</td>
-                                <td style={{borderLeft: "1px solid white", borderRight: "1px solid white" }}>${bill.amount.toFixed(2)}</td>
-                                <td>{bill.description}</td>
-                            </tr>
-                        ))}
-                        </tbody>
-                        </table>
+                            <table className="billingTable">
+                                <thead>
+                                    <tr className="tableHeader">
+                                        <th style={{ borderTopLeftRadius: "10px" }}>Date</th>
+                                        <th>Amount</th>
+                                        <th style={{ borderTopRightRadius: "10px" }}>Description</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {fakeBillings.map((bill) => (
+                                        <tr key={bill.id} className="billingItem">
+                                            <td>{bill.date}</td>
+                                            <td style={{ borderLeft: "1px solid white", borderRight: "1px solid white" }}>${bill.amount.toFixed(2)}</td>
+                                            <td>{bill.description}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 )}
