@@ -66,7 +66,7 @@ export async function POST(req: Request) {
       );
     }
     
-    const isEBike = bikeData.type === "electric";
+    const isEBike = bikeData.isEBike === true;
 
     // Calculate trip cost based on pricing plan
     const startTime = tripData.startTime.toDate();
@@ -169,16 +169,20 @@ export async function POST(req: Request) {
       description
     });
 
-    // Create billing record with "pending" status
-    await billingService.createBilling({
-      userId,
-      email,
-      tripId,
-      amount,
-      description,
-      date: new Date(),
-      status: "paid",  // ← Changed from "pending"
-    });
+    const existingBilling = await billingService.getBillingByTripId(tripId);
+
+    if (!existingBilling) {
+      // Create billing record with "pending" status
+      await billingService.createBilling({
+        userId,
+        email,
+        tripId,
+        amount,
+        description,
+        date: new Date(),
+        status: "paid",  // ← Changed from "pending"
+      });
+    }
 
     return NextResponse.json({
       ok: true,

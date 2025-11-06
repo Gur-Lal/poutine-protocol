@@ -64,7 +64,6 @@ export default function BillingHistoryPanel({ email }: BillingHistoryPanelProps)
               <th style={{ borderTopLeftRadius: "10px" }}>Date</th>
               <th>Trip ID</th>
               <th>Total</th>
-              <th>Breakdown</th>
               <th>Status</th>
               <th style={{ borderTopRightRadius: "10px" }}>Description</th>
             </tr>
@@ -78,19 +77,6 @@ export default function BillingHistoryPanel({ email }: BillingHistoryPanelProps)
                 </td>
                 <td style={{ borderRight: "1px solid white" }}>
                   ${bill.amount.toFixed(2)}
-                </td>
-                <td style={{ fontSize: "12px", borderRight: "1px solid white" }}>
-                  {bill.priceBreakdown?.isMonthlySubscription ? (
-                    <span>Monthly Plan</span>
-                  ) : bill.priceBreakdown ? (
-                    <div>
-                      Base: ${bill.priceBreakdown.basePrice.toFixed(2)}<br/>
-                      Per Min: ${bill.priceBreakdown.perMinutePrice.toFixed(2)}<br/>
-                      {bill.priceBreakdown.eBikeSurcharge > 0 && `E-Bike: $${bill.priceBreakdown.eBikeSurcharge.toFixed(2)}`}
-                    </div>
-                  ) : (
-                    <span>N/A</span>
-                  )}
                 </td>
                 <td style={{ borderRight: "1px solid white" }}>
                   <span 

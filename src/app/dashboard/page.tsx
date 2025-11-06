@@ -13,6 +13,7 @@ import TripHistoryPanel from "@/UI/components/TripHistoryPanel";
 import NotificationButton from "@/UI/components/notification-button";
 import PaymentModal from "@/UI/components/PaymentModal";
 import BillingHistoryPanel from "@/UI/components/BillingHistoryPanel";
+import PricingPanel from "@/UI/components/PricingPanel";
 import axios from "axios";
 import { BMSCore, Subscriber, UpdateData } from "@/domain/services/BMSCore";
 import "./dashboard.css";
@@ -48,7 +49,7 @@ export default function DashboardPage() {
     const [destinationStationId, setDestinationStationId] = useState("");
 
     // Tab state 
-    const [currentTab, setCurrentTab] = useState<"stations" | "trips" | "billing">("stations");
+    const [currentTab, setCurrentTab] = useState<"stations" | "trips" | "billing" | "pricing">("stations");
 
     // Maps
     const mapRef = useRef<HTMLDivElement>(null);
@@ -678,6 +679,12 @@ export default function DashboardPage() {
                             >
                                 Billing
                             </div>
+                            <div
+                            className={`navOption ${currentTab === "pricing" ? "active" : ""}`}
+                            onClick={() => setCurrentTab("pricing")}
+                            >
+                            Pricing
+                            </div>
                         </>
                     )}
 
@@ -752,6 +759,10 @@ export default function DashboardPage() {
 
                 {currentTab === "trips" && (
                     <TripHistoryPanel email={email} role={userRole} />
+                )}
+
+                {currentTab === "pricing" && (
+                    <PricingPanel email={email} />
                 )}
 
             </div>
