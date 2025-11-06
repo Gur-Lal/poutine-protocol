@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { adminDb } from "@/data/firebaseAdmin";
 import { StripePaymentService } from "@/domain/services/stripePaymentService";
-import { RegularPricing, EBikePricing, MonthlyPricing } from "@/domain/models/Pricing";
 
 const paymentService = new StripePaymentService();
 
@@ -72,27 +71,22 @@ export async function POST(req: Request) {
     const durationMinutes = (endTime.getTime() - startTime.getTime()) / (1000 * 60);
 
     let amount = 0;
-    let pricingStrategy;
 
     switch (pricingPlan.toLowerCase()) {
       case "monthly":
         // Monthly subscribers pay $0 per trip
-        pricingStrategy = new MonthlyPricing(30); // $30/month but $0 per trip
         amount = 0;
         break;
       case "ebike":
       case "electric":
-        pricingStrategy = new EBikePricing(2, 0.15, 1); // $2 base + $0.15/min + $1 e-bike charge
-        amount = 2 + (durationMinutes * 0.15) + 1;
+        amount = 2 + (durationMinutes * 0.15) + 1; // $2 base + $0.15/min + $1 e-bike charge
         break;
       case "regular":
       default:
         if (isEBike) {
-          pricingStrategy = new EBikePricing(2, 0.15, 1);
           amount = 2 + (durationMinutes * 0.15) + 1;
         } else {
-          pricingStrategy = new RegularPricing(1.5, 0.10); // $1.50 base + $0.10/min
-          amount = 1.5 + (durationMinutes * 0.10);
+          amount = 1.5 + (durationMinutes * 0.10); // $1.50 base + $0.10/min
         }
         break;
     }

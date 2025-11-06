@@ -155,7 +155,7 @@ export default function PaymentModal({
             ) : (
               <>
                 <div className="paymentInfo">
-                  <p>You'll be redirected to Stripe's secure checkout page</p>
+                  <p>You&apos;ll be redirected to Stripe&apos;s secure checkout page</p>
                 </div>
 
                 <button 
