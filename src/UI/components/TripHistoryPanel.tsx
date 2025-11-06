@@ -258,34 +258,84 @@ export default function TripHistoryPanel({ email, role }: UserData) {
       </table>
       }
       {selectedTrip && (
-        <div>
-          <div className="background" onClick={()=>setSelectedTrip(undefined)}></div>
+        <>
+          <div className="tripDetailsBackdrop" onClick={() => setSelectedTrip(undefined)}></div>
           <div className="tripDetails">
-            <h2>Trip Details</h2><br/>
-            <FaXmark className="xButton" onClick={()=> setSelectedTrip(undefined)}/>
-            <div className="details">
-              <p>Trip ID: {selectedTrip.id}</p>
-              <p>Rider: {selectedTrip.email}</p>
-              <p>Start Time:{selectedTrip.startTime.toLocaleString()} </p>
-              <p>End Time:{selectedTrip.endTime?.toLocaleString()}</p>
-              <p>Start Station: {selectedTrip.startStationName}</p>
-              <p>End Station: {selectedTrip.endStationName}</p>
-              {getDuration(selectedTrip.startTime, selectedTrip.endTime!)}
-              <p>Bike Type: {selectedTrip.isEBike ? "E-Bike" : "Regular"}</p>
-              <p>Cost Breakdown: </p>
+            <FaXmark className="xButton" onClick={() => setSelectedTrip(undefined)} />
+            <h3>Trip Details</h3>
+            
+            <div className="detailRow">
+              <span>Trip ID:</span>
+              <span>{selectedTrip.id}</span>
             </div>
-            <div className="timeline">
-              <p>Started ride at {selectedTrip.startTime.toLocaleTimeString()}</p>
-              <p>{selectedTrip.startStationName}</p>
-              <br/>
-              <br/>
-              <br/>
-              <br/>
-              <p>Ended ride at {selectedTrip.endTime!.toLocaleTimeString()}</p>
-              <p>{selectedTrip.endStationName}</p>
+            
+            <div className="detailRow">
+              <span>Bike ID:</span>
+              <span>{selectedTrip.bikeId}</span>
+            </div>
+            
+            <div className="detailRow">
+              <span>Start Station:</span>
+              <span>{selectedTrip.startStationName}</span>
+            </div>
+            
+            <div className="detailRow">
+              <span>End Station:</span>
+              <span>{selectedTrip.endStationName}</span>
+            </div>
+            
+            <div className="detailRow">
+              <span>Start Time:</span>
+              <span>{new Date(selectedTrip.startTime).toLocaleString()}</span>
+            </div>
+            
+            <div className="detailRow">
+              <span>End Time:</span>
+              <span>{selectedTrip.endTime ? new Date(selectedTrip.endTime).toLocaleString() : "N/A"}</span>
+            </div>
+            
+            <div className="detailRow">
+              <span>Bike Type:</span>
+              <span>{selectedTrip.isEBike ? "E-Bike" : "Regular"}</span>
+            </div>
+            
+            {/* Add breakdown section */}
+            <div className="breakdownSection">
+              <h4>Price Breakdown</h4>
+              {selectedTrip.priceBreakdown?.isMonthlySubscription ? (
+                <div className="detailRow">
+                  <span>Monthly Plan</span>
+                  <span>$0.00</span>
+                </div>
+              ) : selectedTrip.priceBreakdown ? (
+                <>
+                  <div className="detailRow">
+                    <span>Base Price:</span>
+                    <span>${selectedTrip.priceBreakdown.basePrice.toFixed(2)}</span>
+                  </div>
+                  <div className="detailRow">
+                    <span>Per Minute:</span>
+                    <span>${selectedTrip.priceBreakdown.perMinutePrice.toFixed(2)}</span>
+                  </div>
+                  {selectedTrip.priceBreakdown.eBikeSurcharge > 0 && (
+                    <div className="detailRow">
+                      <span>E-Bike Surcharge:</span>
+                      <span>${selectedTrip.priceBreakdown.eBikeSurcharge.toFixed(2)}</span>
+                    </div>
+                  )}
+                  <div className="detailRow totalRow">
+                    <span><strong>Total:</strong></span>
+                    <span><strong>${selectedTrip.priceBreakdown.total.toFixed(2)}</strong></span>
+                  </div>
+                </>
+              ) : (
+                <div className="detailRow">
+                  <span>No breakdown available</span>
+                </div>
+              )}
             </div>
           </div>
-        </div>
+        </>
       )}
     </div>
   );
