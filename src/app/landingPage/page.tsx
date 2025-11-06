@@ -20,6 +20,8 @@ export default function LandingPage() {
     const [selectedStation, setSelectedStation] = useState<DockStation>();
     const [openViewMenu, setOpenViewMenu] = useState(false);
     const [bikes, setBikes] = useState<Bike[]>([]);
+    const [currentView, setCurrentView] = useState<"map" | "pricing">("map");
+
 
     const router = useRouter();
 
@@ -271,8 +273,8 @@ export default function LandingPage() {
                 <p>Pedal to the MTL</p>
                 <div className="navBar">
                     <div className="navOption"> About </div>
-                    <div className="navOption"> Pricing </div>
-                    <div className="navOption"> Map </div>
+                    <div className="navOption" onClick={() => setCurrentView("pricing")}>Pricing</div>
+                    <div className="navOption" onClick={() => setCurrentView("map")}>Map</div>
                 </div>
                 <div className="buttonMenu">
                     <div>
@@ -284,7 +286,56 @@ export default function LandingPage() {
                 </div>
             </header>
 
-            <div className="dashboardArea">
+
+                <main
+                    className="pricingPage"
+                    style={{ display: currentView === "pricing" ? "block" : "none" }}
+                >
+                    <h1 className="pricingPageTitle">Pricing Plans</h1>
+
+                    <div className="pricingContainer">
+                        <div className="pricingOption">
+                            <h2>Regular Bike</h2>
+                            <div className="priceInfo">
+                                <p className="basePrice">$2.50 base fee</p>
+                                <p className="perMinutePrice">$0.15 per minute</p>
+                            </div>
+                            <div className="features">
+                                <p>Unlimited rides</p>
+                                <p>Easy to use</p>
+                            </div>
+                        </div>
+
+                        <div className="pricingOption">
+                            <h2>E-Bike</h2>
+                            <div className="priceInfo">
+                                <p className="basePrice">$3.50 base fee</p>
+                                <p className="perMinutePrice">$0.25 per minute</p>
+                            </div>
+                            <div className="features">
+                                <p>Pedal-assist technology</p>
+                                <p>Go further, faster</p>
+                            </div>
+                        </div>
+
+                        <div className="pricingOption">
+                            <h2>Monthly Pass</h2>
+                            <div className="priceInfo">
+                                <p className="basePrice">$29.99 per month</p>
+                                <p className="perMinutePrice">Unlimited 45-min rides</p>
+                            </div>
+                            <div className="features">
+                                <p>Best value for regular riders</p>
+                                <p>All bike types included</p>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+
+            <div
+                className="dashboardArea"
+                style={{ display: currentView === "map" ? "flex" : "none" }}
+            >
                 <div className="leftPanel">
                     <div className="stationList">
                         <p className="title">AVAILABLE STATIONS</p>
@@ -307,6 +358,7 @@ export default function LandingPage() {
                     <div ref={mapRef} className="map"></div>
                 </div>
             </div>
+
 
             {
                 selectedStation && openViewMenu && bikes && (
