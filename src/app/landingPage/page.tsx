@@ -210,14 +210,8 @@ export default function LandingPage() {
 
                 markersRef.current.push(marker);
 
-                let statusColor;
-                if (station.status === "empty" || station.status === "full") {
-                    statusColor = "rgb(192, 60, 60)";
-                } else if (station.status === "occupied") {
-                    statusColor = "rgb(187, 192, 60)";
-                } else {
-                    statusColor = "rgb(97, 192, 60)";
-                }
+                const fullness = (station.numberOfBikes / station.capacity) * 100;
+                const statusColor = getStationColor(station);
 
                 const infoWindow = new window.google.maps.InfoWindow({
                     content: `<div style="color: black; padding: 0; margin: 0; line-height: 1.4;"><span style="background-color: ${statusColor}; padding: 4px 8px; border-radius: 8px; font-size: 11px; font-weight: bold; color: white; display: inline-block;">${station.status.toUpperCase()}</span><br><b>${station.name}</b><br>Capacity: ${station.capacity}<br>Bikes: ${station.numberOfBikes}</div>`,
@@ -278,6 +272,19 @@ export default function LandingPage() {
 
     const handleLoginOrRegister = (route: string) => {
         router.push(route);
+    }
+
+    function getStationColor(station: DockStation): string {
+        if (!station.capacity || station.capacity === 0) return "gray";
+        const fullness = (station.numberOfBikes / station.capacity) * 100;
+
+        if (fullness === 0 || fullness === 100) {
+            return "rgb(192, 60, 60)";
+        } else if (fullness < 25 || fullness > 85) {
+            return "rgb(187, 192, 60)";
+        } else {
+            return "rgb(97, 192, 60)";
+        }
     }
 
     if (loading) {

@@ -93,18 +93,6 @@
     border-radius:10px;
 }
 
-#occupied{
-    background-color:rgb(187, 192, 60);
-}
-
-#empty{
-    background-color:rgb(97, 192, 60);
-}
-
-#full{
-    background-color:rgb(192, 60, 60);
-}
-
 .address{
     font-weight:bold;
     font-size:20px;
