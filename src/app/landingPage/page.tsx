@@ -367,7 +367,6 @@ export default function LandingPage() {
                                         <p className="title">{station.name.toUpperCase() || "UNNAMED STATION"}</p>
                                         <p className="address">{station.address}</p>
                                         <p className="status" id={station.status === "empty" ? "empty" : station.status === "occupied" ? "occupied" : station.status === "full" ? "full" : "outOfService"}>{station.status.toUpperCase()}</p>
-
                                         <p className="capacity">Total Capacity: {station.capacity}</p>
                                         <p className="bikesAvailable">Bikes Available: {station.numberOfBikes}</p>
                                     </div>
