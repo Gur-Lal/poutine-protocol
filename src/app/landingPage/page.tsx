@@ -367,7 +367,7 @@ export default function LandingPage() {
                         Explore Stations
                     </button>
                 </div>
-            )}
+            </div>
 
             {currentTab === "stations" && (
                 <div className="dashboardArea">
