@@ -513,3 +513,8 @@
     margin-bottom:10px;
     padding-bottom:10px;
 }
+
+.timeline{
+    border-left:2px solid black;
+    padding-left:10px;
+}

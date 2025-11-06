@@ -262,14 +262,16 @@ export default function TripHistoryPanel({ email, role }: UserData) {
               <p>Bike Type: {selectedTrip.isEBike ? "E-Bike" : "Regular"}</p>
               <p>Cost Breakdown: </p>
             </div>
-            <p>Started ride at {selectedTrip.startTime.toLocaleTimeString()}</p>
-            <p>{selectedTrip.startStationName}</p>
-            <p>|</p>
-            <p>|</p>
-            <p>|</p>
-            <p>|</p>
-            <p>Ended ride at {selectedTrip.endTime!.toLocaleTimeString()}</p>
-            <p>{selectedTrip.endStationName}</p>
+            <div className="timeline">
+              <p>Started ride at {selectedTrip.startTime.toLocaleTimeString()}</p>
+              <p>{selectedTrip.startStationName}</p>
+              <br/>
+              <br/>
+              <br/>
+              <br/>
+              <p>Ended ride at {selectedTrip.endTime!.toLocaleTimeString()}</p>
+              <p>{selectedTrip.endStationName}</p>
+            </div>
           </div>
         </div>
       )}
