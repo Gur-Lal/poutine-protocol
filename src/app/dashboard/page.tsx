@@ -446,11 +446,14 @@ export default function DashboardPage() {
 
     const unlockBike = async (email: string, bikeId: string, stationId: string, stationName: string) => {
         try {
+            const bikeResponse = await axios.get(`/api/getBikeById/${bikeId}`);
+            const isEBike = bikeResponse.data.isEBike;
             const response = await axios.post(`/api/unlockBike`, {
                 email: email,
                 bikeId: bikeId,
                 startStationId: stationId,
-                startStationName: stationName
+                startStationName: stationName,
+                isEBike: isEBike
             });
             if (response.data.ok) {
                 bmsCore.publishReservation(userId, bikeId, 'UNLOCKED');
@@ -687,22 +690,28 @@ export default function DashboardPage() {
                 )}
 
                 {currentTab === "billing" && (
-                    <div className="billingTab">
-                        <h2>Billing History</h2>
+                    <div>
+                        <h2 style={{margin:"20px"}}>Billing History</h2>
+                        <div className="billingTab">
                         <table className="billingTable">
-                            <tr className="tableHeader">
-                                <th style={{ borderTopLeftRadius: "10px" }}>Date</th>
-                                <th>Amount</th>
-                                <th style={{ borderTopRightRadius: "10px" }}>Description</th>
-                            </tr>
-                            {fakeBillings.map((bill) => (
-                                <tr key={bill.id} className="billingItem">
-                                    <td>{bill.date}</td>
-                                    <td style={{ borderLeft: "1px solid white", borderRight: "1px solid white" }}>${bill.amount.toFixed(2)}</td>
-                                    <td>{bill.description}</td>
+                            <thead>
+                                <tr className="tableHeader">
+                                    <th style={{borderTopLeftRadius:"10px"}}>Date</th>
+                                    <th>Amount</th>
+                                    <th style={{borderTopRightRadius:"10px"}}>Description</th>
                                 </tr>
-                            ))}
+                            </thead>
+                            <tbody>
+                        {fakeBillings.map((bill) => (
+                            <tr key={bill.id} className="billingItem">
+                                <td>{bill.date}</td>
+                                <td style={{borderLeft: "1px solid white", borderRight: "1px solid white" }}>${bill.amount.toFixed(2)}</td>
+                                <td>{bill.description}</td>
+                            </tr>
+                        ))}
+                        </tbody>
                         </table>
+                        </div>
                     </div>
                 )}
 

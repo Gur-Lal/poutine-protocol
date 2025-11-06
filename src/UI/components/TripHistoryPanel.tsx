@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { UserData } from "@/domain/models/UserData";
 import { TripData } from "@/domain/models/TripData";
+import { FaXmark } from "react-icons/fa6";
 import axios from "axios";
 
 type FirebaseTimestamp = {
@@ -21,12 +22,16 @@ type TripDataAPI = {
   startTime: FirebaseTimestamp | string;
   endTime: FirebaseTimestamp | string | null;
   status: "active" | "completed";
+  isEBike: boolean;
 }
 
 export default function TripHistoryPanel({ email, role }: UserData) {
   const [trips, setTrips] = useState<TripData[]>([]);
   const [loading, setLoading] = useState(true);
-
+  const [filteredTrips, setFilteredTrips] = useState<TripData[]>([]);
+  const [searched, setSearched] = useState(false);
+  const [selectedTrip, setSelectedTrip] = useState<TripData>();
+  const formRef = useRef<HTMLFormElement>(null);
   useEffect(() => {
     const fetchTrips = async () => {
       try {
@@ -62,31 +67,214 @@ export default function TripHistoryPanel({ email, role }: UserData) {
     fetchTrips();
   }, [email, role]);
 
+  const filterTrips = (tripId?: string, bikeType?: string, startDate?: Date, endDate?: Date) => {
+    const filtered = trips.filter((trip) => {
+
+      if(tripId && !trip.id?.toLowerCase().includes(tripId.toLowerCase())){
+        return false;
+      }
+
+      if(bikeType){
+        if(bikeType === "ebike" && !trip.isEBike){
+          return false;
+        }
+        if(bikeType === "regular" && trip.isEBike){
+          return false;
+        }
+      }
+
+      if(startDate) {
+        const searchDate = new Date(startDate);
+        const searchYear = searchDate.getFullYear();
+        const searchMonth = searchDate.getMonth();
+        const searchDay = searchDate.getDate();
+        const normalizedSearchDate = new Date(searchYear, searchMonth, searchDay, 0, 0, 0, 0);
+
+        const tripDate = new Date(trip.startTime);
+        const tripYear = tripDate.getFullYear();
+        const tripMonth = tripDate.getMonth();
+        const tripDay = tripDate.getDate();
+        const normalizedTripDate = new Date(tripYear, tripMonth, tripDay, 0, 0, 0, 0);
+
+        if(normalizedTripDate < normalizedSearchDate){
+          return false;
+        }
+      }
+
+      if(endDate) {
+        if(!trip.endTime){
+          return false;
+        }
+
+        const searchDate = new Date(endDate);
+        const searchYear = searchDate.getFullYear();
+        const searchMonth = searchDate.getMonth();
+        const searchDay = searchDate.getDate();
+        const normalizedSearchDate = new Date(searchYear, searchMonth, searchDay, 23, 59, 59, 999);
+
+        const tripEndDate = new Date(trip.endTime);
+        if(tripEndDate > normalizedSearchDate) {
+          return false;
+        }
+      }
+      return true;
+    });
+    setFilteredTrips(filtered);
+    setSearched(true);
+  }
+
+  const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+
+    const tripId = formData.get("tripId") as string;
+    const bikeType = formData.get("bikeType") as string;
+    const startDateStr = formData.get("startDate") as string;
+    const endDateStr = formData.get("endDate") as string;
+
+    let startDate: Date | undefined = undefined;
+    let endDate: Date | undefined = undefined;
+
+    if(startDateStr){
+      const [year, month, day] = startDateStr.split('-').map(Number);
+      startDate = new Date(year, month - 1, day);
+    }
+
+    if (endDateStr) {
+      const [year, month, day] = endDateStr.split('-').map(Number);
+      endDate = new Date(year, month - 1, day); 
+    }
+
+    if(endDate && startDate){
+      if(endDate < startDate){
+        alert("Selected end date is before selected start date.");
+        return;
+      }
+    }
+    filterTrips(tripId || undefined, bikeType || undefined, startDate, endDate);
+  };
+
+  const clearSearch = () => {
+    setSearched(false);
+    setFilteredTrips([]);
+    if(formRef.current){
+      formRef.current.reset();
+    }
+  };
+
   if (loading) return <p>Loading trip history...</p>;
   if (trips.length === 0) return <p>No trips found.</p>;
 
+  const displayTrips = searched ? filteredTrips : trips;
+
+  const getDuration = (date1: Date, date2: Date) => {
+    const diffMs = Math.abs(date2.getTime() - date1.getTime());
+    const hours = Math.floor(diffMs / (1000 * 60 * 60));
+    const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((diffMs % (1000 * 60)) / 1000);
+  return (
+    <div>
+      <p>Duration: {hours}h {minutes}m {seconds}s</p>
+    </div>
+  );
+  }
   return (
     <div className="tripHistoryPanel">
+      <div className="tripHistoryHeader">
       <h2>Trip History {role === "admin" ? "(All Users)" : ""}</h2>
-      <ul>
-        {trips.map((trip) => (
-          <div key={trip.id} className="tripItem">
-            <p><strong>Bike:</strong> {trip.bikeId}</p>
-            <p><strong>From:</strong> {trip.startStationName || "N/A"} | <strong>To:</strong> {trip.endStationName || "N/A"}</p>
-            <p><strong>Status:</strong> {trip.status.toUpperCase()}</p>
-            <p>
-              <strong>Start:</strong> {new Date(trip.startTime).toLocaleString()} |{" "}
-              <strong>End:</strong> {trip.endTime ? new Date(trip.endTime).toLocaleString() : "Ongoing"}
-            </p>
-            {trip.endTime && (
-              <p>
-                <strong>Duration:</strong>{" "}
-                {((new Date(trip.endTime).getTime() - new Date(trip.startTime).getTime()) / 60000).toFixed(1)} min
-              </p>
-            )}
+      <form ref={formRef} onSubmit={handleSearch} className="filterForm">
+        <div className="inputFieldsBox">
+          <div className="inputLabelBox">
+            <p className="label">Trip ID</p>
+            <input type="text" className="searchBar" name="tripId"placeholder="Enter Trip ID"/>
           </div>
-        ))}
-      </ul>
+          <div className="inputLabelBox">
+            <p className="label">Bike Type</p>
+            <select className="searchBar" name="bikeType" defaultValue="">
+              <option value="">All Bike Types</option>
+              <option value="regular">Regular</option>
+              <option value="ebike">E-Bike</option>
+            </select>
+          </div>
+
+          <div className="inputLabelBox">
+            <p className="label">Start Date</p>
+            <input type="date" className="searchBar" name="startDate" placeholder="Start Date"/>
+          </div>
+
+          <div className="inputLabelBox">
+            <p className="label">End Date</p>
+            <input type="date" className="searchBar" name="endDate" placeholder="End Date"/>
+          </div>
+        </div>
+        <div className="buttonBox">
+          <button type="submit" className="searchButton">Search</button>
+          <button type="button" className="searchButton"onClick={clearSearch} disabled={!searched}>Clear</button>
+        </div>
+      </form>
+      {searched && filteredTrips.length === 0 && <p>No trips match your search criteria. Please clear filters.</p>}
+      </div>
+      {(!searched || filteredTrips.length !== 0) &&
+      <table className = "tripHistoryTable">
+        <thead>
+          <tr className="tripTableHeader">
+            <th>Trip ID</th>
+            <th>Rider</th>
+            <th>Start Time</th>
+            <th>End Time</th>
+            <th>Start Station</th>
+            <th>End Station</th>
+            <th>Bike Type</th>
+            <th>Cost</th>
+          </tr>
+        </thead>
+        <tbody>
+          {displayTrips.map((trip) => (
+            <tr key={trip.id} className="tripItem" onClick={()=>setSelectedTrip(trip)}>
+              <td>{trip.id}</td>
+              <td>{trip.email}</td>
+              <td>{new Date(trip.startTime).toLocaleString()}</td>
+              <td>{new Date(trip.endTime!).toLocaleString()}</td>
+              <td>{trip.startStationName}</td>
+              <td>{trip.endStationName}</td>
+              <td>{trip.isEBike ? "E-Bike" : "Regular"}</td>
+              <td> COST </td>
+            </tr>
+          ))
+          }
+        </tbody>
+      </table>
+      }
+      {selectedTrip && (
+        <div>
+          <div className="background" onClick={()=>setSelectedTrip(undefined)}></div>
+          <div className="tripDetails">
+            <h2>Trip Details</h2><br/>
+            <FaXmark className="xButton" onClick={()=> setSelectedTrip(undefined)}/>
+            <div className="details">
+              <p>Trip ID: {selectedTrip.id}</p>
+              <p>Rider: {selectedTrip.email}</p>
+              <p>Start Time:{selectedTrip.startTime.toLocaleString()} </p>
+              <p>End Time:{selectedTrip.endTime?.toLocaleString()}</p>
+              <p>Start Station: {selectedTrip.startStationName}</p>
+              <p>End Station: {selectedTrip.endStationName}</p>
+              {getDuration(selectedTrip.startTime, selectedTrip.endTime!)}
+              <p>Bike Type: {selectedTrip.isEBike ? "E-Bike" : "Regular"}</p>
+              <p>Cost Breakdown: </p>
+            </div>
+            <div className="timeline">
+              <p>Started ride at {selectedTrip.startTime.toLocaleTimeString()}</p>
+              <p>{selectedTrip.startStationName}</p>
+              <br/>
+              <br/>
+              <br/>
+              <br/>
+              <p>Ended ride at {selectedTrip.endTime!.toLocaleTimeString()}</p>
+              <p>{selectedTrip.endStationName}</p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

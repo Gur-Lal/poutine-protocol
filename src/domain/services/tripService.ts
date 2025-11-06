@@ -4,7 +4,7 @@ import { TripData } from "../models/TripData";
 export class TripService {
   constructor(private db: Firestore) {}
 
-  async startTrip(email: string, bikeId: string, startStationId: string, startStationName: string): Promise<TripData> {
+  async startTrip(email: string, bikeId: string, startStationId: string, startStationName: string, isEBike: boolean): Promise<TripData> {
     const trip: Omit<TripData, "id"> = {
       email,
       bikeId,
@@ -12,7 +12,9 @@ export class TripService {
       startStationName,
       startTime: new Date(),
       endTime: null,
+      endStationName:"",
       status: "active",
+      isEBike: isEBike
     };
 
     const ref = await this.db.collection("trips").add(trip);
@@ -50,6 +52,7 @@ export class TripService {
     const snap = await this.db
       .collection("trips")
       .where("email", "==", email)
+      .where("status", "==", "completed")
       .orderBy("startTime", "desc")
       .get();
 

@@ -250,53 +250,286 @@
 }
 
 .billingTab{
-    margin:20px 0 0 30px ;
+    margin:0 0 0 30px ;
     width:100vw;
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 100px);
+    align-items: center;
 }
 
 .billingTable{
     background-color:rgb(21, 21, 26);
     margin:30px;
     border-radius:10px;
-    padding:20px;
     border-collapse:collapse;
+    display:flex;
     width:80%;
+    flex-direction: column;
+    overflow:hidden;
+    max-height: calc(100vh - 200px);
     justify-self: center;
 }
 
+.tableHeader{
+    display: flex;
+    background-color:rgb(40, 40, 49);
+}
 .tableHeader th{
     padding:20px;
-    background-color:rgb(40, 40, 49);
-    
+    flex:1;
+    text-align: left;
+}
+
+.billingTable thead,
+.billingTable tbody {
+    padding: 0;
+    margin: 0;
+}
+
+.billingTable thead{
+    display: flex;
+    flex-direction: column;
+}
+
+.billingTable tbody{
+    display: block;
+    overflow-y: auto;
+    max-height:calc(100vh - 280px);
+}
+
+.billingTable tbody::-webkit-scrollbar {
+    width: 8px;
+}
+
+.billingTable tbody::-webkit-scrollbar-track {
+    background: rgb(21, 21, 26);
+}
+
+.billingTable tbody::-webkit-scrollbar-thumb {
+    background: rgb(60, 60, 70);
+    border-radius: 4px;
+}
+
+.billingTable tbody::-webkit-scrollbar-thumb:hover {
+    background: rgb(80, 80, 90);
 }
 
 .billingItem{
-    margin:20px;
-    padding:20px 30px;
+    display: flex;
+    margin:0;
+    padding:0;
 }
 
 .billingItem td{
     padding:20px;
-    border-radius:10px;
-    align-items: center;
+    flex:1;
+    text-align: left;
+    border-radius:0;
+}
+
+.billingItem td:nth-child(2) {
+    border-left: 1px solid white;
+    border-right: 1px solid white;
 }
 
 .tripHistoryPanel {
-    margin-top: 20px;
-    padding: 15px;
-    background-color: #000000;
-    border-radius: 8px;
+    margin: 20px 0 0 0;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 100px);
+    align-items: center;
 }
 
-.tripItem {
-    margin:20px;
-    padding:20px 30px;
-    background-color:rgb(21, 21, 26);
-    border-radius:20px;
+.tripHistoryTable {
+    background-color: rgb(21, 21, 26);
+    margin: 30px 0;
+    border-radius: 10px;
+    border-collapse: collapse;
+    border-spacing: 0;
+    display: flex;
+    width: 95%;
+    flex-direction: column;
+    overflow: hidden;
+    max-height: calc(100vh - 200px);
 }
+.tripHistoryHeader{
+    width: 95%;
+    display:flex;
+    flex-direction:column;
+    align-items: flex-start;
+}
+.tripHistoryTable thead {
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+    margin: 0;
+}
+
+.tripTableHeader{
+    display: flex;
+    width: 100%;
+    background-color: rgb(40, 40, 49);
+}
+
+.tripTableHeader th {
+    padding: 20px;
+    text-align: left;
+}
+
+.tripTableHeader th:nth-child(1) { width: 16%; }  
+.tripTableHeader th:nth-child(2) { width: 12%; }  
+.tripTableHeader th:nth-child(3) { width: 16%; }  
+.tripTableHeader th:nth-child(4) { width: 16%; }  
+.tripTableHeader th:nth-child(5) { width: 13%; }  
+.tripTableHeader th:nth-child(6) { width: 13%; }  
+.tripTableHeader th:nth-child(7) { width: 8%; }  
+.tripTableHeader th:nth-child(8) { width: 6%; }
+
+.tripTableHeader th:first-child {
+    border-top-left-radius: 10px;
+}
+
+.tripTableHeader th:last-child {
+    border-top-right-radius: 10px;
+}
+
+.tripHistoryTable tbody{
+    display: block;
+    overflow-y: auto;
+    max-height: calc(100vh - 280px);
+    padding: 0;
+    margin: 0;
+}
+
+.tripHistoryTable tbody::-webkit-scrollbar {
+    width: 8px;
+}
+
+.tripHistoryTable tbody::-webkit-scrollbar-track {
+    background: rgb(21, 21, 26);
+}
+
+.tripHistoryTable tbody::-webkit-scrollbar-thumb {
+    background: rgb(60, 60, 70);
+    border-radius: 4px;
+}
+
+.tripHistoryTable tbody::-webkit-scrollbar-thumb:hover {
+    background: rgb(80, 80, 90);
+}
+
+.tripHistoryTable .tripItem {
+    display: flex;
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    cursor:pointer;
+}
+
+.tripHistoryTable .tripItem:hover{
+    background-color:rgb(52, 52, 61);
+}
+.tripHistoryTable .tripItem td {
+    padding: 20px;
+    text-align: left;
+}
+
+.tripHistoryTable .tripItem td:nth-child(1) { width: 16%; }
+.tripHistoryTable .tripItem td:nth-child(2) { width: 12%; } 
+.tripHistoryTable .tripItem td:nth-child(3) { width: 16%; } 
+.tripHistoryTable .tripItem td:nth-child(4) { width: 16%; } 
+.tripHistoryTable .tripItem td:nth-child(5) { width: 13%; } 
+.tripHistoryTable .tripItem td:nth-child(6) { width: 13%; } 
+.tripHistoryTable .tripItem td:nth-child(7) { width: 8%; }  
+.tripHistoryTable .tripItem td:nth-child(8) { width: 6%; }
 
 .activeTab {
-  background-color: #0070f3;
-  color: white;
+    background-color: #0070f3;
+    color: white;
 }
 
+.filterForm{
+    display:flex;
+    flex-direction:row;
+    margin-top:20px;
+    align-items: center;
+    gap:10px;
+}
+
+.inputFieldsBox{
+    display:flex;
+    margin-bottom:10px;
+}
+
+.buttonBox{
+    display:flex;
+    gap:10px;
+}
+.label{
+    display:flex;
+}
+.inputLabelBox{
+    display:flex;
+    flex-direction:column;
+    margin:5px;
+}
+
+.label{
+    font-weight:bold;
+    margin-bottom:3px;
+}
+.searchBar{
+    display:flex;
+    border:none;
+    padding:5px;
+    background-color:rgb(40, 40, 49);
+    border-radius:5px;
+}
+
+.searchButton{
+    border: none;
+    color: black;
+    background-color: rgb(255, 255, 255);
+    font-family: 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
+    padding: 10px;
+    border-radius: 15px;
+    font-size: 15px;
+}
+
+.searchButton:hover{
+    cursor: pointer;
+    box-shadow: 0 0 10px 5px rgba(255, 255, 255, 0.316);
+    transition: 0.2s ease-in-out;
+}
+
+.searchButton:disabled{
+    cursor:not-allowed;
+    background-color:rgb(177, 177, 177);
+    color:rgb(78, 77, 77);
+    box-shadow:none;
+}
+
+.tripDetails{
+    position:absolute;
+    z-index:2;
+    background-color:white;
+    border-radius:10px;
+    color:black;
+    left: 50%;
+    top:50%;
+    transform: translate(-50%, -50%);
+    padding: 40px;
+}
+
+.details{
+    border-bottom: 2px solid black;
+    margin-bottom:10px;
+    padding-bottom:10px;
+}
+
+.timeline{
+    border-left:2px solid black;
+    padding-left:10px;
+}

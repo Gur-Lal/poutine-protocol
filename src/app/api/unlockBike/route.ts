@@ -8,11 +8,11 @@ const tripService = new TripService(adminDb);
 
 export async function POST(req: Request) {
     try {
-        const { email, bikeId, startStationId, startStationName } = await req.json();
+        const { email, bikeId, startStationId, startStationName, isEBike } = await req.json();
 
         const result = await service.unlockBike({ email, bikeId });
 
-        const trip = await tripService.startTrip(email, bikeId, startStationId, startStationName);
+        const trip = await tripService.startTrip(email, bikeId, startStationId, startStationName, isEBike);
 
         return NextResponse.json({ ok: true, data: { ...result, trip } });
     } catch (error) {
