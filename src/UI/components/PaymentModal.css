@@ -1,0 +1,250 @@
+.paymentModalBackdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.7);
+  z-index: 999;
+}
+
+.paymentModal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgb(6, 6, 6);
+  border: 1px solid #ccc;
+  border-radius: 20px;
+  padding: 40px;
+  min-width: 400px;
+  max-width: 500px;
+  z-index: 1000;
+  color: white;
+}
+
+.closeButton {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  font-size: 24px;
+  cursor: pointer;
+  color: white;
+  transition: transform 0.2s;
+}
+
+.closeButton:hover {
+  transform: rotate(90deg);
+}
+
+.paymentHeader {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.paymentIcon {
+  font-size: 48px;
+  margin-bottom: 15px;
+  color: white;
+}
+
+.paymentHeader h2 {
+  font-size: 28px;
+  margin: 0;
+  font-weight: 700;
+}
+
+.loadingContainer {
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.spinner {
+  border: 4px solid rgba(255, 255, 255, 0.3);
+  border-top: 4px solid white;
+  border-radius: 50%;
+  width: 50px;
+  height: 50px;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 20px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.errorContainer {
+  text-align: center;
+  padding: 20px;
+}
+
+.errorText {
+  color: #ff6b6b;
+  margin-bottom: 20px;
+  font-size: 16px;
+}
+
+.retryButton {
+  background-color: transparent;
+  border: 1px solid white;
+  color: white;
+  padding: 12px 30px;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.retryButton:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.paymentContent {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.tripSummary {
+  background-color: rgb(21, 21, 26);
+  border-radius: 20px;
+  padding: 25px;
+}
+
+.tripSummary h3 {
+  margin-top: 0;
+  margin-bottom: 20px;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.summaryRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 15px;
+  font-size: 16px;
+}
+
+.summaryIcon {
+  font-size: 20px;
+  color: white;
+}
+
+.summaryRow span {
+  flex: 1;
+}
+
+.summaryRow strong {
+  font-weight: 600;
+}
+
+.totalRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid #ccc;
+  font-size: 18px;
+}
+
+.totalAmount {
+  font-size: 24px;
+  font-weight: 700;
+  color: white;
+}
+
+.monthlyMessage {
+  background-color: rgba(15, 103, 22, 0.2);
+  border: 1px solid #0f6716;
+  border-radius: 10px;
+  padding: 20px;
+  text-align: center;
+}
+
+.monthlyMessage p {
+  margin: 5px 0;
+  font-size: 16px;
+}
+
+.monthlyMessage .subtext {
+  font-size: 14px;
+  opacity: 0.9;
+}
+
+.paymentInfo {
+  background-color: rgb(21, 21, 26);
+  border-radius: 10px;
+  padding: 15px;
+  text-align: center;
+}
+
+.paymentInfo p {
+  margin: 5px 0;
+  font-size: 14px;
+}
+
+.testMode {
+  background-color: rgba(37, 99, 235, 0.2);
+  border: 1px solid #2563eb;
+  border-radius: 8px;
+  padding: 10px;
+  margin-top: 10px;
+  font-size: 13px;
+}
+
+.payButton {
+  background-color: #0f6716;
+  border: none;
+  color: white;
+  padding: 16px;
+  border-radius: 10px;
+  font-size: 18px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.payButton:hover:not(:disabled) {
+  background-color: #0d5613;
+}
+
+.payButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background-color: #cbcbcb;
+}
+
+.cancelButton {
+  background-color: transparent;
+  border: 1px solid #ccc;
+  color: white;
+  padding: 12px;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.cancelButton:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+@media (max-width: 600px) {
+  .paymentModal {
+    min-width: 90%;
+    padding: 30px 20px;
+  }
+
+  .paymentHeader h2 {
+    font-size: 24px;
+  }
+
+  .paymentIcon {
+    font-size: 40px;
+  }
+}

@@ -11,6 +11,7 @@ import { Reservation } from "@/domain/models/Reservation";
 import { createNotification } from "@/domain/services/notificationService";
 import TripHistoryPanel from "@/UI/components/TripHistoryPanel";
 import NotificationButton from "@/UI/components/notification-button";
+import PaymentModal from "@/UI/components/PaymentModal";
 import axios from "axios";
 import { BMSCore, Subscriber, UpdateData } from "@/domain/services/BMSCore";
 import "./dashboard.css";
@@ -37,6 +38,8 @@ export default function DashboardPage() {
     const [reservation, setReservation] = useState<Reservation>();
     const [reservedBike, setReservedBike] = useState<Bike | null>(null);
     const [startStation, setStartStation] = useState<DockStation>();
+    const [showPaymentModal, setShowPaymentModal] = useState(false);
+    const [paymentTripId, setPaymentTripId] = useState<string>("");
 
     // Admin states
     const [userRole, setUserRole] = useState("");
@@ -473,14 +476,14 @@ export default function DashboardPage() {
         }
     };
 
-    const returnBike = async (email: string, bikeId: string, stationId: string, stationName: string) => {
+    const returnBike = async (email: string, bikeId: string, stationId: string) => {
         try {
             const response = await axios.post(`/api/returnBike`, {
                 email: email,
                 bikeId: bikeId,
                 stationId: stationId,
-                stationName: stationName
             });
+            
             if (response.data.ok) {
                 bmsCore.publishReservation(userId, bikeId, 'RETURNED');
                 await createNotification(
@@ -492,10 +495,21 @@ export default function DashboardPage() {
                 setReservation(undefined);
                 handleCloseReservationMenu();
                 await fetchStations();
+                
+                //  NEW: Show payment modal
+                if (response.data.data.tripId) {
+                    setPaymentTripId(response.data.data.tripId);
+                    setShowPaymentModal(true);
+                }
             }
         } catch (error) {
             console.log("Error returning bike:", error);
         }
+    };
+
+    const handlePaymentComplete = () => {
+        setShowPaymentModal(false);
+        setPaymentTripId("");
     };
 
     const handleSetStationService = async (station: DockStation, e: React.MouseEvent) => {
@@ -771,7 +785,7 @@ export default function DashboardPage() {
                                         disabled={reservedBikeId !== ""}> RESERVE
                                     </button>
                                     <button className="actionButton" onClick={() => {
-                                        returnBike(email, reservedBikeId, selectedStation.id, selectedStation.name);
+                                        returnBike(email, reservedBikeId, selectedStation.id);
                                     }} disabled={!(reservedBikeId !== "")}> RETURN
                                     </button>
                                 </div>
@@ -833,6 +847,17 @@ export default function DashboardPage() {
                     </div>
                 )
             }
+
+            {showPaymentModal && (
+                <PaymentModal
+                    isOpen={showPaymentModal}
+                    tripId={paymentTripId}
+                    email={email}
+                    onClose={() => setShowPaymentModal(false)}
+                    onPaymentComplete={handlePaymentComplete}
+                />
+            )}
+
         </main>
     );
 }
