@@ -779,7 +779,7 @@ export default function DashboardPage() {
                                 {
                                     bikes.map((bike, index) => (
                                         <div className={`bikeItem ${selectedBike?.id === bike.id ? 'selected' : ''} ${bike.status === "available" ? 'available' : 'reserved'}`} key={index} onClick={() => handleBikeClick(bike)}>
-                                            <p>Bike {index + 1}: {bike.status.toUpperCase()}</p>
+                                            {bike.isEBike?<p>E-Bike: {bike.status.toUpperCase()}</p>:<p>Regular Bike: {bike.status.toUpperCase()}</p>}
                                             {userRole === "admin" && bike.status !== "on_trip" && bike.status !== "reserved" && (
                                                 <button
                                                     className="adminBikeAction"

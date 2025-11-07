@@ -225,8 +225,7 @@ export default function TripHistoryPanel({ email, role }: UserData) {
             <th>Start Station</th>
             <th>End Station</th>
             <th>Bike Type</th>
-            <th>Total Cost</th>
-            <th>Breakdown</th>
+            <th>Cost</th>
           </tr>
         </thead>
         <tbody>
@@ -240,17 +239,6 @@ export default function TripHistoryPanel({ email, role }: UserData) {
               <td>{trip.endStationName}</td>
               <td>{trip.isEBike ? "E-Bike" : "Regular"}</td>
               <td>${trip.priceBreakdown?.total.toFixed(2) || '0.00'}</td>
-              <td style={{ fontSize: "12px" }}>
-                {trip.priceBreakdown?.isMonthlySubscription ? (
-                  <span>Monthly Plan</span>
-                ) : (
-                  <div>
-                    Base: ${trip.priceBreakdown?.basePrice.toFixed(2)}<br/>
-                    Per Min: ${trip.priceBreakdown?.perMinutePrice.toFixed(2)}<br/>
-                    {trip.priceBreakdown?.eBikeSurcharge ? `E-Bike: $${trip.priceBreakdown.eBikeSurcharge.toFixed(2)}` : ''}
-                  </div>
-                )}
-              </td>
             </tr>
           ))
           }
@@ -265,40 +253,42 @@ export default function TripHistoryPanel({ email, role }: UserData) {
             <h3>Trip Details</h3>
             
             <div className="detailRow">
-              <span>Trip ID:</span>
-              <span>{selectedTrip.id}</span>
+              <span>Trip ID: {selectedTrip.id}</span>
             </div>
             
             <div className="detailRow">
-              <span>Bike ID:</span>
-              <span>{selectedTrip.bikeId}</span>
+              <span>Bike ID: {selectedTrip.bikeId}</span>
             </div>
             
             <div className="detailRow">
-              <span>Start Station:</span>
-              <span>{selectedTrip.startStationName}</span>
+              <span>Start Station: {selectedTrip.startStationName}</span>
             </div>
             
             <div className="detailRow">
-              <span>End Station:</span>
-              <span>{selectedTrip.endStationName}</span>
+              <span>End Station: {selectedTrip.endStationName}</span>
             </div>
             
             <div className="detailRow">
-              <span>Start Time:</span>
-              <span>{new Date(selectedTrip.startTime).toLocaleString()}</span>
+              <span>Start Time: {new Date(selectedTrip.startTime).toLocaleString()}</span>
             </div>
             
             <div className="detailRow">
-              <span>End Time:</span>
-              <span>{selectedTrip.endTime ? new Date(selectedTrip.endTime).toLocaleString() : "N/A"}</span>
+              <span>End Time: {selectedTrip.endTime ? new Date(selectedTrip.endTime).toLocaleString() : "N/A"}</span>
             </div>
             
             <div className="detailRow">
-              <span>Bike Type:</span>
-              <span>{selectedTrip.isEBike ? "E-Bike" : "Regular"}</span>
+              <span>Bike Type: {selectedTrip.isEBike ? "E-Bike" : "Regular"}</span>
             </div>
-            
+            <div className="timeline">
+              <p>Started ride at: {selectedTrip.startTime.toLocaleTimeString()}</p>
+              <p className="timelineStationName">{selectedTrip.startStationName}</p>
+              <br/>
+              <br/>
+              <br/>
+              <br/>
+              <p>Ended ride at: {selectedTrip.endTime!.toLocaleTimeString()}</p>
+              <p className="timelineStationName">{selectedTrip.endStationName}</p>
+            </div>
             {/* Add breakdown section */}
             <div className="breakdownSection">
               <h4>Price Breakdown</h4>

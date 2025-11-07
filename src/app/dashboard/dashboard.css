@@ -530,6 +530,33 @@
 }
 
 .timeline{
+    margin: 10px 0;
     border-left:2px solid black;
     padding-left:10px;
+    font-weight: bold;
+}
+
+.tripDetailsBackdrop{
+    background-color: black;
+    opacity:0.5;
+    z-index:1;
+    position:absolute;
+    left:0;
+    top:0;
+    height:100vh;
+    width:100vw;
+}
+
+.detailRow{
+    margin:3px 0;
+}
+
+.timelineStationName{
+    font-size:small;
+    color:grey;
+}
+
+.breakdownSection{
+    border-top:1px solid lightgrey;
+    padding-top:5px;
 }
