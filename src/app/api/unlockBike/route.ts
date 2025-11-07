@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { BikeReservationService } from "@/domain/services/bikeReservationService";
 import { TripService } from "@/domain/services/tripService";
 import { adminDb } from "@/data/firebaseAdmin";
+import { bmsCore } from "@/lib/server-services";
 
 const service = new BikeReservationService(adminDb);
 const tripService = new TripService(adminDb);
@@ -13,6 +14,9 @@ export async function POST(req: Request) {
         const result = await service.unlockBike({ email, bikeId });
 
         const trip = await tripService.startTrip(email, bikeId, startStationId, startStationName, isEBike);
+
+        bmsCore.publishReservation(email, bikeId, 'UNLOCKED');
+        await bmsCore.publishStations();
 
         return NextResponse.json({ ok: true, data: { ...result, trip } });
     } catch (error) {

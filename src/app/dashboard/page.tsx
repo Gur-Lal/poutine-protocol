@@ -15,7 +15,7 @@ import PaymentModal from "@/UI/components/PaymentModal";
 import BillingHistoryPanel from "@/UI/components/BillingHistoryPanel";
 import PricingPanel from "@/UI/components/PricingPanel";
 import axios from "axios";
-import { BMSCore, Subscriber, UpdateData } from "@/domain/services/BMSCore";
+import { clientObserver, ClientSubscriber, ClientUpdateData } from "@/lib/client-observer";
 import "./dashboard.css";
 import { useRef } from "react";
 
@@ -61,18 +61,14 @@ export default function DashboardPage() {
 
     const router = useRouter();
 
-    const bmsCore = BMSCore.getInstance();
-
     const fetchStations = useCallback(async () => {
         try {
             const response = await axios.get(`api/getDocuments/stations`);
             setStations(response.data);
-            // ADDED: Publish stations to BMSCore
-            bmsCore.publishStations(response.data);
         } catch (error) {
             console.log("Error fetching stations: ", error);
         }
-    }, [bmsCore]);
+    }, []);
 
 
     const handleStationClick = (station: DockStation) => {
@@ -84,8 +80,8 @@ export default function DashboardPage() {
     // ADDED: Subscribe to BMSCore updates for real-time synchronization
     useEffect(() => {
         // Create subscriber to receive updates from BMSCore
-        const dashboardSubscriber: Subscriber = {
-            update: (data: UpdateData) => {
+        const dashboardSubscriber: ClientSubscriber = {
+            update: (data: ClientUpdateData) => {
                 switch (data.type) {
                     case 'STATIONS_UPDATE':
                         setStations(data.stations);
@@ -110,7 +106,7 @@ export default function DashboardPage() {
 
         // Subscribe with unique ID
         const subscriberId = `dashboard-${Date.now()}`;
-        bmsCore.subscribe(subscriberId, dashboardSubscriber);
+        clientObserver.subscribe(subscriberId, dashboardSubscriber);
 
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
             if (user) {
@@ -125,8 +121,6 @@ export default function DashboardPage() {
 
                     const response = await axios.get(`api/getDocuments/stations`);
                     setStations(response.data);
-                    // ADDED: Publish stations to BMSCore so all subscribers are notified
-                    bmsCore.publishStations(response.data);
                 } catch (error) {
                     console.log("Error fetching stations: ", error);
                 }
@@ -136,12 +130,13 @@ export default function DashboardPage() {
             setLoading(false);
         });
 
-        // ADDED: Cleanup function to unsubscribe when component unmounts
+        // Cleanup function to unsubscribe when component unmounts
         return () => {
-            bmsCore.unsubscribe(subscriberId);
+            clientObserver.unsubscribe(subscriberId); // ✅ Change to clientObserver
             unsubscribe();
         };
-    }, [bmsCore, fetchStations, router, selectedStation?.id]);
+
+    }, [fetchStations, router, selectedStation?.id]);
 
     useEffect(() => {
         console.log(selectedStation);
@@ -415,8 +410,6 @@ export default function DashboardPage() {
         try {
             const response = await axios.get(`/api/getBikes/${stationId}`);
             setBikes(response.data);
-            // ADDED: Publish bike updates to BMSCore
-            bmsCore.publishBikes(stationId, response.data);
         } catch (error) {
             console.log("Error fetching bikes:", error);
         }
@@ -458,8 +451,6 @@ export default function DashboardPage() {
             if (response.data.ok) {
                 setReservedBikeId(bikeId);
                 await fetchBikeById(bikeId);
-                // ADDED: Publish reservation update to all subscribers
-                bmsCore.publishReservation(userId, bikeId, 'RESERVED');
                 setStartStation(selectedStation);
                 await refreshStationAndBikes(selectedStation?.id);
             }
@@ -509,7 +500,6 @@ export default function DashboardPage() {
                 isEBike: isEBike
             });
             if (response.data.ok) {
-                bmsCore.publishReservation(userId, bikeId, 'UNLOCKED');
                 await createNotification(
                     email,
                     "Bike unlocked",
@@ -531,9 +521,8 @@ export default function DashboardPage() {
                 bikeId: bikeId,
                 stationId: stationId,
             });
-            
+
             if (response.data.ok) {
-                bmsCore.publishReservation(userId, bikeId, 'RETURNED');
                 await createNotification(
                     email,
                     `Bike returned`,
@@ -545,7 +534,7 @@ export default function DashboardPage() {
                 setOnBikeTrip(false);
                 handleCloseReservationMenu();
                 await fetchStations();
-                
+
                 //  NEW: Show payment modal
                 if (response.data.data.tripId) {
                     setPaymentTripId(response.data.data.tripId);
@@ -575,7 +564,6 @@ export default function DashboardPage() {
 
             if (response.data.ok) {
                 alert(`Station ${newStatus ? "marked out of service" : "restored to service"}`);
-                bmsCore.publishSystemUpdate(`Station ${station.name} ${newStatus ? "taken offline" : "restored"}`);
                 await fetchStations();
             } else {
                 alert("Failed to update station status");
@@ -625,8 +613,6 @@ export default function DashboardPage() {
 
             if (response.data.ok) {
                 alert("Bike moved successfully!");
-                // ADDED: Publish system update
-                bmsCore.publishSystemUpdate(`Bike moved from ${selectedStation.name} to another station`);
                 setShowMoveModal(false);
                 handleCloseReservationMenu();
                 await fetchStations();
@@ -649,8 +635,6 @@ export default function DashboardPage() {
 
             if (response.data.ok) {
                 alert("System reset successfully!");
-                // ADDED: Publish system reset
-                bmsCore.publishSystemUpdate("System has been reset");
                 fetchStations();
             } else {
                 alert("Failed to reset system: " + response.data.error);
@@ -662,17 +646,17 @@ export default function DashboardPage() {
     };
 
     function getStationColor(station: DockStation): string {
-    if (!station.capacity || station.capacity === 0) return "gray";
-    const fullness = (station.numberOfBikes / station.capacity) * 100;
+        if (!station.capacity || station.capacity === 0) return "gray";
+        const fullness = (station.numberOfBikes / station.capacity) * 100;
 
-    if (fullness === 0 || fullness === 100) {
-        return "rgb(192, 60, 60)";
-    } else if (fullness < 25 || fullness > 85) {
-        return "rgb(187, 192, 60)";
-    } else {
-        return "rgb(97, 192, 60)";
+        if (fullness === 0 || fullness === 100) {
+            return "rgb(192, 60, 60)";
+        } else if (fullness < 25 || fullness > 85) {
+            return "rgb(187, 192, 60)";
+        } else {
+            return "rgb(97, 192, 60)";
+        }
     }
-}
     return (
         <main className="dashboardContainer">
             <div className="header">
@@ -734,10 +718,10 @@ export default function DashboardPage() {
                                     <div className="stationItem" key={index} onClick={() => handleStationClick(station)}>
                                         <p className="title">{station.name.toUpperCase() || "UNNAMED STATION"}</p>
                                         <p className="address">{station.address}</p>
-                                        <p className="status" 
+                                        <p className="status"
                                             style={{
                                                 backgroundColor: getStationColor(station),
-                                        }}>
+                                            }}>
                                             {station.status.toUpperCase()}
                                         </p>
 
