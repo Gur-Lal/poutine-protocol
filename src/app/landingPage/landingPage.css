@@ -196,6 +196,9 @@
 @media (max-width: 900px) {
     .pricingContainer {
         grid-template-columns: 1fr;
+    }
+}
+   
 .aboutSection {
     display: flex;
     flex-direction: column;

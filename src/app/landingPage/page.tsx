@@ -329,7 +329,7 @@ export default function LandingPage() {
 
                 <main
                     className="pricingPage"
-                    style={{ display: currentView === "pricing" ? "block" : "none" }}
+                    style={{ display: currentTab === "pricing" ? "block" : "none" }}
                 >
                     <h1 className="pricingPageTitle">Pricing Plans</h1>
 
@@ -371,7 +371,7 @@ export default function LandingPage() {
                         </div>
                     </div>
                 </main>
-          
+
             {currentTab === "about" && (
                 <div className="aboutSection">
                     <h1 className="aboutTitle">Ride Freely. Explore Montreal.</h1>
