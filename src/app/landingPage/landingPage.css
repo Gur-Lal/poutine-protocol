@@ -107,6 +107,98 @@
     height: 100%;
 }
 
+.registerButton{
+    border:none;
+    color:black;
+    background-color:rgb(255, 255, 255);
+    font-family:'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
+    padding:10px;
+    border-radius:15px;
+    font-size:15px;
+}
+
+.registerButton:hover{
+    cursor:pointer;
+    box-shadow:0 0 10px 5px rgba(255, 255, 255, 0.316);
+    transition:0.2s ease-in-out;
+}
+
+.pricingPage {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 60px 20px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.pricingPageTitle {
+    font-size: 36px;
+    font-weight: bold;
+    margin-bottom: 50px;
+    text-align: center;
+    font-family: 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
+}
+
+.pricingContainer {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 30px;
+    width: 100%;
+}
+
+.pricingOption {
+    background-color: rgb(21, 21, 26);
+    border-radius: 15px;
+    padding: 30px;
+    text-align: center;
+}
+
+.pricingOption h2 {
+    font-size: 24px;
+    margin-bottom: 20px;
+    font-family: 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
+}
+
+.priceInfo {
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.basePrice {
+    font-size: 28px;
+    font-weight: bold;
+    margin: 10px 0;
+}
+
+.perMinutePrice {
+    font-size: 18px;
+    color: #b8b8b8;
+    margin: 10px 0;
+}
+
+.features {
+    text-align: left;
+}
+
+.features p {
+    margin: 10px 0;
+    padding: 8px 0;
+    font-size: 15px;
+    color: #e0e0e0;
+}
+
+.activeNav {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+@media (max-width: 900px) {
+    .pricingContainer {
+        grid-template-columns: 1fr;
+    }
+}
+   
 .aboutSection {
     display: flex;
     flex-direction: column;

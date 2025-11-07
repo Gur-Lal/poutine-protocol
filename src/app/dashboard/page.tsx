@@ -12,6 +12,8 @@ import { createNotification } from "@/domain/services/notificationService";
 import TripHistoryPanel from "@/UI/components/TripHistoryPanel";
 import NotificationButton from "@/UI/components/notification-button";
 import PaymentModal from "@/UI/components/PaymentModal";
+import BillingHistoryPanel from "@/UI/components/BillingHistoryPanel";
+import PricingPanel from "@/UI/components/PricingPanel";
 import axios from "axios";
 import { BMSCore, Subscriber, UpdateData } from "@/domain/services/BMSCore";
 import "./dashboard.css";
@@ -48,18 +50,7 @@ export default function DashboardPage() {
     const [destinationStationId, setDestinationStationId] = useState("");
 
     // Tab state 
-    const [currentTab, setCurrentTab] = useState<"stations" | "trips" | "billing">("stations");
-
-    // Fake billing data
-    const fakeBillings = [
-        { id: 1, date: "2025-10-01", amount: 15.5, description: "Bike rental - Station A" },
-        { id: 2, date: "2025-10-05", amount: 7.0, description: "Bike rental - Station B" },
-        { id: 3, date: "2025-10-12", amount: 20.0, description: "Late return fee" },
-        { id: 4, date: "2025-10-01", amount: 15.5, description: "Bike rental - Station A" },
-        { id: 5, date: "2025-10-05", amount: 7.0, description: "Bike rental - Station B" },
-        { id: 6, date: "2025-10-12", amount: 20.0, description: "Late return fee" },
-
-    ];
+    const [currentTab, setCurrentTab] = useState<"stations" | "trips" | "billing" | "pricing">("stations");
 
     // Maps
     const mapRef = useRef<HTMLDivElement>(null);
@@ -374,6 +365,41 @@ export default function DashboardPage() {
         }
     }, [currentTab, email]);
 
+    useEffect(() => {
+        const handlePaymentSuccess = async () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const paymentStatus = urlParams.get('payment');
+            const tripId = urlParams.get('trip');
+
+            if (paymentStatus === 'success' && tripId) {
+            console.log('Payment successful for trip:', tripId);
+            
+            try {
+                const response = await fetch('/api/markBillingPaid', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ tripId }),
+                });
+
+                const data = await response.json();
+                
+                if (data.ok) {
+                console.log('Billing marked as paid');
+                }
+            } catch (error) {
+                console.error('Error marking billing as paid:', error);
+            }
+
+            // Clean up URL
+            window.history.replaceState({}, '', '/dashboard');
+            }
+        };
+
+        handlePaymentSuccess();
+    }, [currentTab]);
+
     if (loading) {
         return <p>Loading...</p>;
     }
@@ -671,6 +697,12 @@ export default function DashboardPage() {
                             >
                                 Billing
                             </div>
+                            <div
+                            className={`navOption ${currentTab === "pricing" ? "active" : ""}`}
+                            onClick={() => setCurrentTab("pricing")}
+                            >
+                            Pricing
+                            </div>
                         </>
                     )}
 
@@ -732,33 +764,15 @@ export default function DashboardPage() {
                 )}
 
                 {currentTab === "billing" && (
-                    <div>
-                        <h2 style={{ margin: "20px" }}>Billing History</h2>
-                        <div className="billingTab">
-                            <table className="billingTable">
-                                <thead>
-                                    <tr className="tableHeader">
-                                        <th style={{ borderTopLeftRadius: "10px" }}>Date</th>
-                                        <th>Amount</th>
-                                        <th style={{ borderTopRightRadius: "10px" }}>Description</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {fakeBillings.map((bill) => (
-                                        <tr key={bill.id} className="billingItem">
-                                            <td>{bill.date}</td>
-                                            <td style={{ borderLeft: "1px solid white", borderRight: "1px solid white" }}>${bill.amount.toFixed(2)}</td>
-                                            <td>{bill.description}</td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
+                    <BillingHistoryPanel email={email} />
                 )}
 
                 {currentTab === "trips" && (
                     <TripHistoryPanel email={email} role={userRole} />
+                )}
+
+                {currentTab === "pricing" && (
+                    <PricingPanel email={email} />
                 )}
 
             </div>
@@ -775,7 +789,7 @@ export default function DashboardPage() {
                                 {
                                     bikes.map((bike, index) => (
                                         <div className={`bikeItem ${selectedBike?.id === bike.id ? 'selected' : ''} ${bike.status === "available" ? 'available' : 'reserved'}`} key={index} onClick={() => handleBikeClick(bike)}>
-                                            <p>Bike {index + 1}: {bike.status.toUpperCase()}</p>
+                                            {bike.isEBike?<p>E-Bike: {bike.status.toUpperCase()}</p>:<p>Regular Bike: {bike.status.toUpperCase()}</p>}
                                             {userRole === "admin" && bike.status !== "on_trip" && bike.status !== "reserved" && (
                                                 <button
                                                     className="adminBikeAction"
