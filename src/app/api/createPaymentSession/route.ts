@@ -2,9 +2,18 @@ import { NextResponse } from "next/server";
 import { adminDb } from "@/data/firebaseAdmin";
 import { StripePaymentService } from "@/domain/services/stripePaymentService";
 import { BillingService } from "@/domain/services/billingService";
+import { PricingStrategy, RegularPricing, EBikePricing, MonthlyPricing } from '@/domain/models/Pricing';
+import { Trip } from '@/domain/models/Trip';
 
 const paymentService = new StripePaymentService();
 const billingService = new BillingService(adminDb);
+
+// Pricing configuration constants
+const PRICING_CONFIG = {
+  regular: { base: 1.5, perMinute: 0.10 },
+  ebike: { base: 2, perMinute: 0.15, eBikeCharge: 1 },
+  monthly: { monthlyFee: 30 }
+};
 
 export async function POST(req: Request) {
   try {
@@ -68,31 +77,37 @@ export async function POST(req: Request) {
     
     const isEBike = bikeData.isEBike === true;
 
-    // Calculate trip cost based on pricing plan
+    // Calculate trip cost using pricing strategies
     const startTime = tripData.startTime.toDate();
     const endTime = tripData.endTime.toDate();
     const durationMinutes = (endTime.getTime() - startTime.getTime()) / (1000 * 60);
 
-    let amount = 0;
+    // Create minimal Trip object for pricing calculation
+    const tripForPricing = {
+      start: startTime,
+      end: endTime
+    } as Trip;
 
-    switch (pricingPlan.toLowerCase()) {
-      case "monthly":
-        // Monthly subscribers pay $0 per trip
-        amount = 0;
-        break;
-      case "ebike":
-      case "electric":
-        amount = 2 + (durationMinutes * 0.15) + 1; // $2 base + $0.15/min + $1 e-bike charge
-        break;
-      case "regular":
-      default:
-        if (isEBike) {
-          amount = 2 + (durationMinutes * 0.15) + 1;
-        } else {
-          amount = 1.5 + (durationMinutes * 0.10); // $1.50 base + $0.10/min
-        }
-        break;
+    // Determine which pricing strategy to use
+    let pricingStrategy: PricingStrategy;
+
+    if (pricingPlan.toLowerCase() === 'monthly') {
+      pricingStrategy = new MonthlyPricing(PRICING_CONFIG.monthly.monthlyFee);
+    } else if (isEBike) {
+      pricingStrategy = new EBikePricing(
+        PRICING_CONFIG.ebike.base,
+        PRICING_CONFIG.ebike.perMinute,
+        PRICING_CONFIG.ebike.eBikeCharge
+      );
+    } else {
+      pricingStrategy = new RegularPricing(
+        PRICING_CONFIG.regular.base,
+        PRICING_CONFIG.regular.perMinute
+      );
     }
+
+    // Calculate amount using the strategy
+    let amount = pricingStrategy.calculatePrice(tripForPricing);
 
     // Round to 2 decimal places
     amount = Math.round(amount * 100) / 100;
