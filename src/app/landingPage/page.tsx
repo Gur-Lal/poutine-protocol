@@ -20,6 +20,7 @@ export default function LandingPage() {
     const [selectedStation, setSelectedStation] = useState<DockStation>();
     const [openViewMenu, setOpenViewMenu] = useState(false);
     const [bikes, setBikes] = useState<Bike[]>([]);
+    const [currentTab, setCurrentTab] = useState<"about" | "pricing" | "stations">("about");
 
     const router = useRouter();
 
@@ -80,6 +81,11 @@ export default function LandingPage() {
 
         if (!userLocation) {
             console.log("No user location yet, waiting...");
+            return;
+        }
+
+        if (currentTab !== "stations") {
+            console.log("Not on stations tab, skipping map init");
             return;
         }
 
@@ -167,7 +173,7 @@ export default function LandingPage() {
             clearInterval(checkMapRef);
             clearTimeout(timeout);
         };
-    }, [userLocation]);
+    }, [userLocation, currentTab]);
 
     // Add station markers
     useEffect(() => {
@@ -236,6 +242,19 @@ export default function LandingPage() {
         console.log("Successfully added", markersRef.current.length, "markers");
     }, [stations, mapReady, handleStationClick]);
 
+    useEffect(() => {
+        if (currentTab !== "stations") {
+            // Clear map when leaving stations tab
+            if (mapInstanceRef.current) {
+                console.log("Leaving stations tab - clearing map");
+                mapInstanceRef.current = null;
+            }
+            markersRef.current.forEach(marker => marker.setMap(null));
+            markersRef.current = [];
+            setMapReady(false);
+        }
+    }, [currentTab]);
+
     const fetchBikesByStation = async (stationId: string) => {
         try {
             const response = await axios.get(`/api/getBikes/${stationId}`);
@@ -277,9 +296,26 @@ export default function LandingPage() {
             <header className="landingHeader">
                 <p>Pedal to the MTL</p>
                 <div className="navBar">
-                    <div className="navOption"> About </div>
-                    <div className="navOption"> Pricing </div>
-                    <div className="navOption"> Map </div>
+                    <div
+                        className={`navOption ${currentTab === "about" ? "active" : ""}`}
+                        onClick={() => setCurrentTab("about")}
+                    >
+                        About
+                    </div>
+
+                    <div
+                        className={`navOption ${currentTab === "pricing" ? "active" : ""}`}
+                        onClick={() => setCurrentTab("pricing")}
+                    >
+                        Pricing
+                    </div>
+
+                    <div
+                        className={`navOption ${currentTab === "stations" ? "active" : ""}`}
+                        onClick={() => setCurrentTab("stations")}
+                    >
+                        Stations
+                    </div>
                 </div>
                 <div className="buttonMenu">
                     <div>
@@ -291,29 +327,112 @@ export default function LandingPage() {
                 </div>
             </header>
 
-            <div className="dashboardArea">
-                <div className="leftPanel">
-                    <div className="stationList">
-                        <p className="title">AVAILABLE STATIONS</p>
-                        {
-                            stations.map((station, index) => (
-                                <div className="stationItem" key={index} onClick={() => handleStationClick(station)}>
-                                    <p className="title">{station.name.toUpperCase() || "UNNAMED STATION"}</p>
-                                    <p className="address">{station.address}</p>
-                                    <p className="status" style={{backgroundColor: getStationColor(station)}}>{station.status.toUpperCase()}</p>
+                <main
+                    className="pricingPage"
+                    style={{ display: currentTab === "pricing" ? "block" : "none" }}
+                >
+                    <h1 className="pricingPageTitle">Pricing Plans</h1>
 
-                                    <p className="capacity">Total Capacity: {station.capacity}</p>
-                                    <p className="bikesAvailable">Bikes Available: {station.numberOfBikes}</p>
-                                </div>
-                            ))
-                        }
+                    <div className="pricingContainer">
+                        <div className="pricingOption">
+                            <h2>Regular Bike</h2>
+                            <div className="priceInfo">
+                                <p className="basePrice">$2.50 base fee</p>
+                                <p className="perMinutePrice">$0.15 per minute</p>
+                            </div>
+                            <div className="features">
+                                <p>Unlimited rides</p>
+                                <p>Easy to use</p>
+                            </div>
+                        </div>
+
+                        <div className="pricingOption">
+                            <h2>E-Bike</h2>
+                            <div className="priceInfo">
+                                <p className="basePrice">$3.50 base fee</p>
+                                <p className="perMinutePrice">$0.25 per minute</p>
+                            </div>
+                            <div className="features">
+                                <p>Pedal-assist technology</p>
+                                <p>Go further, faster</p>
+                            </div>
+                        </div>
+
+                        <div className="pricingOption">
+                            <h2>Monthly Pass</h2>
+                            <div className="priceInfo">
+                                <p className="basePrice">$29.99 per month</p>
+                                <p className="perMinutePrice">Unlimited 45-min rides</p>
+                            </div>
+                            <div className="features">
+                                <p>Best value for regular riders</p>
+                                <p>All bike types included</p>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+
+            {currentTab === "about" && (
+                <div className="aboutSection">
+                    <h1 className="aboutTitle">Ride Freely. Explore Montreal.</h1>
+                    <p className="aboutSubtitle">
+                        Pedal to the MTL is a community-driven bike share designed for convenience,
+                        sustainability, and discovering the city on your own terms.
+                    </p>
+
+                    <div className="aboutGif">
+                        <img src="/cycling.gif" alt="Cycling animation" />
+                    </div>
+                    
+                    <div className="aboutStats">
+                        <div className="statCard">
+                            <p className="statNumber">50+</p>
+                            <p className="statLabel">Stations Across Montreal</p>
+                        </div>
+                        <div className="statCard">
+                            <p className="statNumber">Zero</p>
+                            <p className="statLabel">Emissions</p>
+                        </div>
+                        <div className="statCard">
+                            <p className="statNumber">Infinite</p>
+                            <p className="statLabel">Routes to Explore</p>
+                        </div>
+                    </div>
+
+                    <button
+                        className="exploreButton"
+                        onClick={() => setCurrentTab("stations")}
+                    >
+                        Explore Stations
+                    </button>
+                </div>
+            )}
+
+            {currentTab === "stations" && (
+                <div className="dashboardArea">
+                    <div className="leftPanel">
+                        <div className="stationList">
+                            <p className="title">AVAILABLE STATIONS</p>
+                            {
+                                stations.map((station, index) => (
+                                    <div className="stationItem" key={index} onClick={() => handleStationClick(station)}>
+                                        <p className="title">{station.name.toUpperCase() || "UNNAMED STATION"}</p>
+                                        <p className="address">{station.address}</p>
+                                        <p className="status" id={station.status === "empty" ? "empty" : station.status === "occupied" ? "occupied" : station.status === "full" ? "full" : "outOfService"}>{station.status.toUpperCase()}</p>
+                                        <p className="capacity">Total Capacity: {station.capacity}</p>
+                                        <p className="bikesAvailable">Bikes Available: {station.numberOfBikes}</p>
+                                    </div>
+                                ))
+                            }
+                        </div>
+                    </div>
+
+                    <div className="mapContainer">
+                        <div ref={mapRef} className="map"></div>
                     </div>
                 </div>
+                )}
 
-                <div className="mapContainer">
-                    <div ref={mapRef} className="map"></div>
-                </div>
-            </div>
 
             {
                 selectedStation && openViewMenu && bikes && (

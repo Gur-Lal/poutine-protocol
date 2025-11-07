@@ -37,7 +37,7 @@ export async function POST(req: Request) {
             data: {
                 ...result,
                 trip,
-                tripId: trip?.id  // Firebase uses 'id' field, not 'tripId'
+                tripId: trip?.id
             }
         });
     } catch (error) {

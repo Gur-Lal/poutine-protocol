@@ -2,7 +2,7 @@ import { Firestore } from "firebase-admin/firestore";
 import { TripData } from "../models/TripData";
 
 export class TripService {
-  constructor(private db: Firestore) {}
+  constructor(private db: Firestore) { }
 
   async startTrip(email: string, bikeId: string, startStationId: string, startStationName: string, isEBike: boolean): Promise<TripData> {
     const trip: Omit<TripData, "id"> = {
@@ -12,7 +12,7 @@ export class TripService {
       startStationName,
       startTime: new Date(),
       endTime: null,
-      endStationName:"",
+      endStationName: "",
       status: "active",
       isEBike: isEBike
     };
@@ -57,6 +57,21 @@ export class TripService {
       .get();
 
     return snap.docs.map((doc) => ({ ...(doc.data() as TripData), id: doc.id }));
+  }
+
+  async getActiveTrip(email: string): Promise<TripData | null> {
+    const snap = await this.db
+      .collection("trips")
+      .where("email", "==", email)
+      .where("status", "==", "active")
+      .limit(1)
+      .get();
+
+    if (snap.empty) {
+      return null;
+    }
+
+    return { ...(snap.docs[0].data() as TripData), id: snap.docs[0].id };
   }
 
   async getAllTrips(): Promise<TripData[]> {
