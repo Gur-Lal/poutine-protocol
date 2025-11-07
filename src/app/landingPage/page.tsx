@@ -20,8 +20,7 @@ export default function LandingPage() {
     const [selectedStation, setSelectedStation] = useState<DockStation>();
     const [openViewMenu, setOpenViewMenu] = useState(false);
     const [bikes, setBikes] = useState<Bike[]>([]);
-    const [currentView, setCurrentView] = useState<"map" | "pricing">("map");
-
+    const [currentTab, setCurrentTab] = useState<"about" | "pricing" | "stations">("about");
 
     const router = useRouter();
 
@@ -82,6 +81,11 @@ export default function LandingPage() {
 
         if (!userLocation) {
             console.log("No user location yet, waiting...");
+            return;
+        }
+
+        if (currentTab !== "stations") {
+            console.log("Not on stations tab, skipping map init");
             return;
         }
 
@@ -169,7 +173,7 @@ export default function LandingPage() {
             clearInterval(checkMapRef);
             clearTimeout(timeout);
         };
-    }, [userLocation]);
+    }, [userLocation, currentTab]);
 
     // Add station markers
     useEffect(() => {
@@ -206,14 +210,8 @@ export default function LandingPage() {
 
                 markersRef.current.push(marker);
 
-                let statusColor;
-                if (station.status === "empty" || station.status === "full") {
-                    statusColor = "rgb(192, 60, 60)";
-                } else if (station.status === "occupied") {
-                    statusColor = "rgb(187, 192, 60)";
-                } else {
-                    statusColor = "rgb(97, 192, 60)";
-                }
+                const fullness = (station.numberOfBikes / station.capacity) * 100;
+                const statusColor = getStationColor(station);
 
                 const infoWindow = new window.google.maps.InfoWindow({
                     content: `<div style="color: black; padding: 0; margin: 0; line-height: 1.4;"><span style="background-color: ${statusColor}; padding: 4px 8px; border-radius: 8px; font-size: 11px; font-weight: bold; color: white; display: inline-block;">${station.status.toUpperCase()}</span><br><b>${station.name}</b><br>Capacity: ${station.capacity}<br>Bikes: ${station.numberOfBikes}</div>`,
@@ -244,6 +242,19 @@ export default function LandingPage() {
         console.log("Successfully added", markersRef.current.length, "markers");
     }, [stations, mapReady, handleStationClick]);
 
+    useEffect(() => {
+        if (currentTab !== "stations") {
+            // Clear map when leaving stations tab
+            if (mapInstanceRef.current) {
+                console.log("Leaving stations tab - clearing map");
+                mapInstanceRef.current = null;
+            }
+            markersRef.current.forEach(marker => marker.setMap(null));
+            markersRef.current = [];
+            setMapReady(false);
+        }
+    }, [currentTab]);
+
     const fetchBikesByStation = async (stationId: string) => {
         try {
             const response = await axios.get(`/api/getBikes/${stationId}`);
@@ -263,6 +274,19 @@ export default function LandingPage() {
         router.push(route);
     }
 
+    function getStationColor(station: DockStation): string {
+        if (!station.capacity || station.capacity === 0) return "gray";
+        const fullness = (station.numberOfBikes / station.capacity) * 100;
+
+        if (fullness === 0 || fullness === 100) {
+            return "rgb(192, 60, 60)";
+        } else if (fullness < 25 || fullness > 85) {
+            return "rgb(187, 192, 60)";
+        } else {
+            return "rgb(97, 192, 60)";
+        }
+    }
+
     if (loading) {
         return <p>Loading stations...</p>;
     }
@@ -272,9 +296,26 @@ export default function LandingPage() {
             <header className="landingHeader">
                 <p>Pedal to the MTL</p>
                 <div className="navBar">
-                    <div className="navOption"> About </div>
-                    <div className="navOption" onClick={() => setCurrentView("pricing")}>Pricing</div>
-                    <div className="navOption" onClick={() => setCurrentView("map")}>Map</div>
+                    <div
+                        className={`navOption ${currentTab === "about" ? "active" : ""}`}
+                        onClick={() => setCurrentTab("about")}
+                    >
+                        About
+                    </div>
+
+                    <div
+                        className={`navOption ${currentTab === "pricing" ? "active" : ""}`}
+                        onClick={() => setCurrentTab("pricing")}
+                    >
+                        Pricing
+                    </div>
+
+                    <div
+                        className={`navOption ${currentTab === "stations" ? "active" : ""}`}
+                        onClick={() => setCurrentTab("stations")}
+                    >
+                        Stations
+                    </div>
                 </div>
                 <div className="buttonMenu">
                     <div>
@@ -285,7 +326,6 @@ export default function LandingPage() {
                     </div>
                 </div>
             </header>
-
 
                 <main
                     className="pricingPage"
@@ -331,33 +371,67 @@ export default function LandingPage() {
                         </div>
                     </div>
                 </main>
+          
+            {currentTab === "about" && (
+                <div className="aboutSection">
+                    <h1 className="aboutTitle">Ride Freely. Explore Montreal.</h1>
+                    <p className="aboutSubtitle">
+                        Pedal to the MTL is a community-driven bike share designed for convenience,
+                        sustainability, and discovering the city on your own terms.
+                    </p>
 
-            <div
-                className="dashboardArea"
-                style={{ display: currentView === "map" ? "flex" : "none" }}
-            >
-                <div className="leftPanel">
-                    <div className="stationList">
-                        <p className="title">AVAILABLE STATIONS</p>
-                        {
-                            stations.map((station, index) => (
-                                <div className="stationItem" key={index} onClick={() => handleStationClick(station)}>
-                                    <p className="title">{station.name.toUpperCase() || "UNNAMED STATION"}</p>
-                                    <p className="address">{station.address}</p>
-                                    <p className="status" id={station.status === "empty" ? "empty" : station.status === "occupied" ? "occupied" : station.status === "full" ? "full" : "outOfService"}>{station.status.toUpperCase()}</p>
+                    <div className="aboutGif">
+                        <img src="/cycling.gif" alt="Cycling animation" />
+                    </div>
+                    
+                    <div className="aboutStats">
+                        <div className="statCard">
+                            <p className="statNumber">50+</p>
+                            <p className="statLabel">Stations Across Montreal</p>
+                        </div>
+                        <div className="statCard">
+                            <p className="statNumber">Zero</p>
+                            <p className="statLabel">Emissions</p>
+                        </div>
+                        <div className="statCard">
+                            <p className="statNumber">Infinite</p>
+                            <p className="statLabel">Routes to Explore</p>
+                        </div>
+                    </div>
 
-                                    <p className="capacity">Total Capacity: {station.capacity}</p>
-                                    <p className="bikesAvailable">Bikes Available: {station.numberOfBikes}</p>
-                                </div>
-                            ))
-                        }
+                    <button
+                        className="exploreButton"
+                        onClick={() => setCurrentTab("stations")}
+                    >
+                        Explore Stations
+                    </button>
+                </div>
+            )}
+
+            {currentTab === "stations" && (
+                <div className="dashboardArea">
+                    <div className="leftPanel">
+                        <div className="stationList">
+                            <p className="title">AVAILABLE STATIONS</p>
+                            {
+                                stations.map((station, index) => (
+                                    <div className="stationItem" key={index} onClick={() => handleStationClick(station)}>
+                                        <p className="title">{station.name.toUpperCase() || "UNNAMED STATION"}</p>
+                                        <p className="address">{station.address}</p>
+                                        <p className="status" id={station.status === "empty" ? "empty" : station.status === "occupied" ? "occupied" : station.status === "full" ? "full" : "outOfService"}>{station.status.toUpperCase()}</p>
+                                        <p className="capacity">Total Capacity: {station.capacity}</p>
+                                        <p className="bikesAvailable">Bikes Available: {station.numberOfBikes}</p>
+                                    </div>
+                                ))
+                            }
+                        </div>
+                    </div>
+
+                    <div className="mapContainer">
+                        <div ref={mapRef} className="map"></div>
                     </div>
                 </div>
-
-                <div className="mapContainer">
-                    <div ref={mapRef} className="map"></div>
-                </div>
-            </div>
+                )}
 
 
             {

@@ -196,5 +196,132 @@
 @media (max-width: 900px) {
     .pricingContainer {
         grid-template-columns: 1fr;
+.aboutSection {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 20px;
+    text-align: center;
+    color: white;
+    min-height: calc(100vh - 60px);
+    overflow-y: auto;
+    background: linear-gradient(135deg, #15151a 0%, #000000 100%);
+}
+
+.aboutTitle {
+    font-size: 42px;
+    font-weight: bold;
+    margin-bottom: 20px;
+    text-shadow: 0 0 8px rgba(255, 255, 255, 0.2);
+}
+
+.aboutSubtitle {
+    font-size: 18px;
+    max-width: 650px;
+    line-height: 1.6;
+    opacity: 0.85;
+    margin-bottom: 50px;
+}
+
+.aboutGif {
+    width: 350px;
+    max-width: 90%;
+    height: auto;
+    border-radius: 20px;
+    margin-bottom: 70px; /* space to stats */
+    box-shadow: 0 0 30px rgba(255, 255, 255, 0.15);
+    transition: transform 0.3s ease;
+}
+
+.aboutGif img {
+    width: 100%;
+    height: auto;
+    border-radius: 20px;
+}
+
+.aboutGif:hover {
+    transform: scale(1.05);
+}
+
+.aboutStats {
+    display: flex;
+    gap: 40px;
+    margin-bottom: 40px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.statCard {
+    background-color: rgb(21, 21, 26);
+    padding: 25px 35px;
+    border-radius: 15px;
+    text-align: center;
+    min-width: 160px;
+    box-shadow: 0 0 15px -5px rgb(80, 80, 80);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.statCard:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 0 25px -5px rgb(80, 80, 80);
+}
+
+.statNumber {
+    font-size: 30px;
+    font-weight: bold;
+    margin-bottom: 8px;
+}
+
+.statLabel {
+    font-size: 15px;
+    opacity: 0.75;
+}
+
+.exploreButton {
+    border: none;
+    color: black;
+    background-color: white;
+    padding: 12px 28px;
+    border-radius: 25px;
+    font-size: 16px;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+    transition: 0.25s ease-in-out;
+}
+
+.exploreButton:hover {
+    box-shadow: 0 0 20px 6px rgba(255, 255, 255, 0.35);
+    transform: translateY(-2px);
+}
+
+/* Responsive tweaks */
+@media (max-width: 900px) {
+    .aboutSection {
+        padding: 40px 15px;
+    }
+    .aboutGif {
+        width: 250px;
+        margin-bottom: 40px;
+    }
+}
+
+@media (max-width: 600px) {
+    .aboutSection {
+        padding: 30px 10px;
+    }
+    .aboutTitle {
+        font-size: 32px;
+    }
+    .aboutSubtitle {
+        font-size: 16px;
+        margin-bottom: 35px;
+    }
+    .aboutStats {
+        gap: 20px;
+    }
+    .statCard {
+        padding: 20px 25px;
+        min-width: 140px;
     }
 }

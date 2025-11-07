@@ -42,6 +42,7 @@ export default function DashboardPage() {
     const [startStation, setStartStation] = useState<DockStation>();
     const [showPaymentModal, setShowPaymentModal] = useState(false);
     const [paymentTripId, setPaymentTripId] = useState<string>("");
+    const [onBikeTrip, setOnBikeTrip] = useState(false);
 
     // Admin states
     const [userRole, setUserRole] = useState("");
@@ -308,14 +309,8 @@ export default function DashboardPage() {
 
                 markersRef.current.push(marker);
 
-                let statusColor;
-                if (station.status === "empty" || station.status === "full") {
-                    statusColor = "rgb(192, 60, 60)";
-                } else if (station.status === "occupied") {
-                    statusColor = "rgb(187, 192, 60)";
-                } else {
-                    statusColor = "rgb(97, 192, 60)";
-                }
+                const fullness = (station.numberOfBikes / station.capacity) * 100
+                const statusColor = getStationColor(station);
 
                 const infoWindow = new window.google.maps.InfoWindow({
                     content: `<div style="color: black; padding: 0; margin: 0; line-height: 1.4;"><span style="background-color: ${statusColor}; padding: 4px 8px; border-radius: 8px; font-size: 11px; font-weight: bold; color: white; display: inline-block;">${station.status.toUpperCase()}</span><br><b>${station.name}</b><br>Capacity: ${station.capacity}<br>Bikes: ${station.numberOfBikes}</div>`,
@@ -346,8 +341,19 @@ export default function DashboardPage() {
         console.log("Successfully added", markersRef.current.length, "markers");
     }, [stations, mapReady, handleStationClick]);
 
+    const refreshActiveTrip = async (email: string) => {
+        try {
+            const response = await axios.get(`/api/trips/active/${email}`);
+            setOnBikeTrip(response.data.trip !== null);
+        } catch (error) {
+            console.log("Error fetching bikes:", error);
+        }
+    }
+
     useEffect(() => {
-        if (currentTab !== "stations") {
+        if (currentTab === "stations") {
+            refreshActiveTrip(email);
+        } else {
             // Clear map when leaving stations tab
             if (mapInstanceRef.current) {
                 console.log("Leaving stations tab - clearing map");
@@ -357,7 +363,7 @@ export default function DashboardPage() {
             markersRef.current = [];
             setMapReady(false);
         }
-    }, [currentTab]);
+    }, [currentTab, email]);
 
     useEffect(() => {
         const handlePaymentSuccess = async () => {
@@ -510,9 +516,7 @@ export default function DashboardPage() {
                     "Your bike has been successfully unlocked. Ride safely!"
                 );
                 setShowReservations(false);
-                setReservation(undefined);
-                setReservedBikeId("");
-                setStartStation(undefined);
+                setOnBikeTrip(true);
                 await fetchStations();
             }
         } catch (error) {
@@ -535,8 +539,10 @@ export default function DashboardPage() {
                     `Bike returned`,
                     `Your bike has been successfully returned to station: ${selectedStation?.name}`
                 );
-                setReservedBikeId("");
                 setReservation(undefined);
+                setReservedBikeId("");
+                setStartStation(undefined);
+                setOnBikeTrip(false);
                 handleCloseReservationMenu();
                 await fetchStations();
                 
@@ -655,6 +661,18 @@ export default function DashboardPage() {
         }
     };
 
+    function getStationColor(station: DockStation): string {
+    if (!station.capacity || station.capacity === 0) return "gray";
+    const fullness = (station.numberOfBikes / station.capacity) * 100;
+
+    if (fullness === 0 || fullness === 100) {
+        return "rgb(192, 60, 60)";
+    } else if (fullness < 25 || fullness > 85) {
+        return "rgb(187, 192, 60)";
+    } else {
+        return "rgb(97, 192, 60)";
+    }
+}
     return (
         <main className="dashboardContainer">
             <div className="header">
@@ -716,18 +734,10 @@ export default function DashboardPage() {
                                     <div className="stationItem" key={index} onClick={() => handleStationClick(station)}>
                                         <p className="title">{station.name.toUpperCase() || "UNNAMED STATION"}</p>
                                         <p className="address">{station.address}</p>
-                                        <p
-                                            className="status"
-                                            id={
-                                                station.status === "empty"
-                                                    ? "empty"
-                                                    : station.status === "occupied"
-                                                        ? "occupied"
-                                                        : station.status === "full"
-                                                            ? "full"
-                                                            : "outOfService"
-                                            }
-                                        >
+                                        <p className="status" 
+                                            style={{
+                                                backgroundColor: getStationColor(station),
+                                        }}>
                                             {station.status.toUpperCase()}
                                         </p>
 
@@ -818,7 +828,7 @@ export default function DashboardPage() {
                                     </button>
                                     <button className="actionButton" onClick={() => {
                                         returnBike(email, reservedBikeId, selectedStation.id);
-                                    }} disabled={!(reservedBikeId !== "")}> RETURN
+                                    }} disabled={!(onBikeTrip)}> RETURN
                                     </button>
                                 </div>
                             )}
