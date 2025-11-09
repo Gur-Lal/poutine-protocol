@@ -481,31 +481,21 @@ export default function DashboardPage() {
 
     const handleViewReservation = async (email: string) => {
         await refreshReservation(email);
-
-        if (reservedBike) {
-            const station = stations.find(st => st.id === reservedBike.stationId);
-
-            if (station) {
-                setStartStation(station);
-            } else {
-                setStartStation(undefined);
-            }
-        } else {
-            setStartStation(undefined);
-        }
-
         setShowReservations(true);
     };
 
-    const unlockBike = async (email: string, bikeId: string, stationId: string, stationName: string) => {
+    const unlockBike = async (email: string, bikeId: string, station: DockStation | undefined) => {
         try {
+            if (station === undefined && reservedBike) {
+                station = stations.find(st => st.id === reservedBike.stationId);
+            }
             const bikeResponse = await axios.get(`/api/getBikeById/${bikeId}`);
             const isEBike = bikeResponse.data.isEBike;
             const response = await axios.post(`/api/unlockBike`, {
                 email: email,
                 bikeId: bikeId,
-                startStationId: stationId,
-                startStationName: stationName,
+                startStationId: station!.id,
+                startStationName: station!.name,
                 isEBike: isEBike
             });
             if (response.data.ok) {
@@ -880,7 +870,7 @@ export default function DashboardPage() {
                                     <p className="reservationStatus">{reservation.status.toUpperCase()}</p>
                                     <p>Start Time: {reservation.startTime.toLocaleString()}</p>
                                     <p style={{ marginBottom: "20px" }}>Expires: {reservation.reservationExpiry.toLocaleString()}</p>
-                                    <button className="actionButton" onClick={() => unlockBike(email, reservation.bikeId, startStation!.id, startStation!.name)} disabled={reservedBike?.status === "on_trip"}> Unlock Bike</button>
+                                    <button className="actionButton" onClick={() => unlockBike(email, reservation.bikeId, startStation)} disabled={reservedBike?.status === "on_trip"}> Unlock Bike</button>
                                 </div>
                             )}
                         </div>
