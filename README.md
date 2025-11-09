@@ -12,6 +12,12 @@ A university project for a bike sharing system.
 
 ## Getting Started
 
+Install the dependencies:
+
+```sh
+npm install
+```
+
 To run the development version locally:
 
 ```sh
