@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { auth } from "@/data/firebase";
 import { useRouter } from "next/navigation";
 import { onAuthStateChanged } from "firebase/auth";
@@ -10,14 +10,13 @@ import { FaXmark } from "react-icons/fa6";
 import { Reservation } from "@/domain/models/Reservation";
 import { createNotification } from "@/domain/services/notificationService";
 import TripHistoryPanel from "@/UI/components/TripHistoryPanel";
-import NotificationButton from "@/UI/components/notification-button";
+import NotificationButton from "@/UI/components/NotificationButton";
 import PaymentModal from "@/UI/components/PaymentModal";
 import BillingHistoryPanel from "@/UI/components/BillingHistoryPanel";
 import PricingPanel from "@/UI/components/PricingPanel";
 import axios from "axios";
 import { clientObserver, ClientSubscriber, ClientUpdateData } from "@/lib/client-observer";
 import "./dashboard.css";
-import { useRef } from "react";
 
 declare global {
     interface Window {
@@ -27,8 +26,6 @@ declare global {
 
 export default function DashboardPage() {
     const [email, setEmail] = useState("");
-    // ADDED: Track user ID for publishing reservation updates
-    const [userId, setUserId] = useState("");
     const [stations, setStations] = useState<DockStation[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedStation, setSelectedStation] = useState<DockStation>();
@@ -70,14 +67,12 @@ export default function DashboardPage() {
         }
     }, []);
 
-
-    const handleStationClick = (station: DockStation) => {
+    const handleStationClick = useCallback((station: DockStation) => {
         setSelectedStation(station);
         setOpenReservationMenu(true);
         fetchBikesByStation(station.id);
-    }
+    }, []);
 
-    // ADDED: Subscribe to BMSCore updates for real-time synchronization
     useEffect(() => {
         // Create subscriber to receive updates from BMSCore
         const dashboardSubscriber: ClientSubscriber = {
@@ -111,9 +106,6 @@ export default function DashboardPage() {
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
             if (user) {
                 setEmail(user.email || "");
-                // ADDED: Store user ID for publishing reservation updates
-                setUserId(user.uid);
-
                 try {
                     // Fetch user role
                     const roleResponse = await axios.get(`/api/getUserRole/${user.uid}`);
@@ -132,7 +124,7 @@ export default function DashboardPage() {
 
         // Cleanup function to unsubscribe when component unmounts
         return () => {
-            clientObserver.unsubscribe(subscriberId); // ✅ Change to clientObserver
+            clientObserver.unsubscribe(subscriberId);
             unsubscribe();
         };
 
@@ -304,7 +296,6 @@ export default function DashboardPage() {
 
                 markersRef.current.push(marker);
 
-                const fullness = (station.numberOfBikes / station.capacity) * 100
                 const statusColor = getStationColor(station);
 
                 const infoWindow = new window.google.maps.InfoWindow({
@@ -336,19 +327,17 @@ export default function DashboardPage() {
         console.log("Successfully added", markersRef.current.length, "markers");
     }, [stations, mapReady, handleStationClick]);
 
-    const refreshActiveTrip = async (email: string) => {
+        const refreshOnBikeTrip = async (email: string) => {
         try {
             const response = await axios.get(`/api/trips/active/${email}`);
             setOnBikeTrip(response.data.trip !== null);
         } catch (error) {
-            console.log("Error fetching bikes:", error);
+            console.log("Error fetching active trip:", error);
         }
     }
 
     useEffect(() => {
-        if (currentTab === "stations") {
-            refreshActiveTrip(email);
-        } else {
+        if (currentTab !== "stations") {
             // Clear map when leaving stations tab
             if (mapInstanceRef.current) {
                 console.log("Leaving stations tab - clearing map");
@@ -358,7 +347,7 @@ export default function DashboardPage() {
             markersRef.current = [];
             setMapReady(false);
         }
-    }, [currentTab, email]);
+    }, [currentTab]);
 
     useEffect(() => {
         const handlePaymentSuccess = async () => {
@@ -395,9 +384,39 @@ export default function DashboardPage() {
         handlePaymentSuccess();
     }, [currentTab]);
 
-    if (loading) {
-        return <p>Loading...</p>;
-    }
+    const refreshReservation = useCallback(async (email: string) => {
+        try {
+            const response = await axios.get(`/api/getReservation/${email}`);
+            const data = response.data;
+
+            if (data) {
+                const startTime = new Date(data.startTime._seconds * 1000);
+                const reservationExpiry = new Date(data.reservationExpiry._seconds * 1000);
+
+                setReservation({
+                    ...data,
+                    startTime: startTime,
+                    reservationExpiry: reservationExpiry
+                });
+
+                setReservedBikeId(data.bikeId);
+                await fetchBikeById(data.bikeId);
+            } else {
+                setReservation(undefined);
+                setReservedBikeId("");
+                setReservedBike(null);
+            }
+        } catch (error) {
+            console.log("Error fetching reservation: ", error);
+        }
+    }, []);
+
+    useEffect(() => {
+        if (openReservationMenu) {
+            refreshOnBikeTrip(email);
+            refreshReservation(email);
+        }
+    }, [email, openReservationMenu, refreshReservation]);
 
     const refreshStationAndBikes = async (stationId?: string) => {
         await fetchStations();
@@ -423,7 +442,6 @@ export default function DashboardPage() {
             console.log("Error fetching bike: ", error);
         }
     }
-
 
     const handleCloseReservationMenu = () => {
         setOpenReservationMenu(false);
@@ -462,30 +480,21 @@ export default function DashboardPage() {
     }
 
     const handleViewReservation = async (email: string) => {
-        try {
-            const response = await axios.get(`/api/getReservation/${email}`);
-            const data = response.data;
-            if (data) {
-                const startTime = new Date(data.startTime._seconds * 1000);
-                const reservationExpiry = new Date(data.reservationExpiry._seconds * 1000);
+        await refreshReservation(email);
 
-                setReservation({
-                    ...data,
-                    startTime: startTime,
-                    reservationExpiry: reservationExpiry
-                });
-                setReservedBikeId(data.bikeId);
-                await fetchBikeById(data.bikeId);
+        if (reservedBike) {
+            const station = stations.find(st => st.id === reservedBike.stationId);
+
+            if (station) {
+                setStartStation(station);
             } else {
-                setReservation(undefined);
-                setReservedBikeId("");
-                setReservedBike(null);
+                setStartStation(undefined);
             }
-        } catch (error) {
-            console.log("Error fetching reservation: ", error);
-        } finally {
-            setShowReservations(true);
+        } else {
+            setStartStation(undefined);
         }
+
+        setShowReservations(true);
     };
 
     const unlockBike = async (email: string, bikeId: string, stationId: string, stationName: string) => {
@@ -657,6 +666,11 @@ export default function DashboardPage() {
             return "rgb(97, 192, 60)";
         }
     }
+
+    if (loading) {
+        return <p>Loading...</p>;
+    }
+
     return (
         <main className="dashboardContainer">
             <div className="header">
@@ -667,14 +681,14 @@ export default function DashboardPage() {
                     >
                         Stations
                     </div>
+                    <div
+                        className={`navOption ${currentTab === "trips" ? "active" : ""}`}
+                        onClick={() => setCurrentTab("trips")}
+                    >
+                        Trip History
+                    </div>
                     {userRole !== "admin" && (
                         <>
-                            <div
-                                className={`navOption ${currentTab === "trips" ? "active" : ""}`}
-                                onClick={() => setCurrentTab("trips")}
-                            >
-                                Trip History
-                            </div>
                             <div
                                 className={`navOption ${currentTab === "billing" ? "active" : ""}`}
                                 onClick={() => setCurrentTab("billing")}
@@ -682,10 +696,10 @@ export default function DashboardPage() {
                                 Billing
                             </div>
                             <div
-                            className={`navOption ${currentTab === "pricing" ? "active" : ""}`}
-                            onClick={() => setCurrentTab("pricing")}
+                                className={`navOption ${currentTab === "pricing" ? "active" : ""}`}
+                                onClick={() => setCurrentTab("pricing")}
                             >
-                            Pricing
+                                Pricing
                             </div>
                         </>
                     )}
