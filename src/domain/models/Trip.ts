@@ -4,7 +4,9 @@ import { Bike } from "./Bike";
 export class Trip {
   tripId: string;
   startStation: DockStation;
+  startStationName: string;
   endStation: DockStation;
+  endStationName: string;
   start: Date;
   end: Date;
   bike: Bike;
@@ -12,14 +14,18 @@ export class Trip {
   constructor(
     tripId: string,
     startStation: DockStation,
+    startStationName: string,
     endStation: DockStation,
+    endStationName: string,
     start: Date,
     end: Date,
     bike: Bike
   ) {
     this.tripId = tripId;
     this.startStation = startStation;
+    this.startStationName = startStationName;
     this.endStation = endStation;
+    this.endStationName = endStationName;
     this.start = start;
     this.end = end;
     this.bike = bike;

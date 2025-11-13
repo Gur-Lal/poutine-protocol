@@ -55,9 +55,13 @@ export default function RegisterPage() {
 
             alert("Registration successful!");
 
-        } catch (err: any) {
-            console.error(err);
-            setError(err?.message || "Failed to register.");
+        } catch (error) {
+            console.error(error);
+            if (error instanceof Error) {
+                setError(error?.message);
+            } else {
+                setError("Failed to register.");
+            }
         } finally {
             setLoading(false);
         }

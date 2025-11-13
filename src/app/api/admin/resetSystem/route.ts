@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { adminDb } from "@/data/firebaseAdmin";
 import { AdminService } from "@/domain/services/adminService";
 
-export async function POST(request: NextRequest) {
+export async function POST() {
     try {
         const adminService = new AdminService(adminDb);
 
