@@ -17,6 +17,7 @@ import PricingPanel from "@/UI/components/PricingPanel";
 import axios from "axios";
 import { clientObserver, ClientSubscriber, ClientUpdateData } from "@/lib/client-observer";
 import "./dashboard.css";
+import RoleToggle from "@/UI/components/RoleToggle";
 
 declare global {
     interface Window {
@@ -42,7 +43,8 @@ export default function DashboardPage() {
     const [onBikeTrip, setOnBikeTrip] = useState(false);
 
     // Admin states
-    const [userRole, setUserRole] = useState("");
+    const [userRole, setUserRole] = useState<"rider" | "operator" | "admin" | "dual">("rider");
+    const [activeRole, setActiveRole] = useState<"operator" | "rider">("rider");
     const [showMoveModal, setShowMoveModal] = useState(false);
     const [destinationStationId, setDestinationStationId] = useState("");
 
@@ -55,6 +57,12 @@ export default function DashboardPage() {
     const markersRef = useRef<any[]>([]);
     const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
     const [mapReady, setMapReady] = useState(false);
+
+    const isOperatorMode = () => {
+        return userRole === "admin" ||
+            userRole === "operator" ||
+            (userRole === "dual" && activeRole === "operator");
+    };
 
     const router = useRouter();
 
@@ -72,6 +80,7 @@ export default function DashboardPage() {
         setOpenReservationMenu(true);
         fetchBikesByStation(station.id);
     }, []);
+
 
     useEffect(() => {
         // Create subscriber to receive updates from BMSCore
@@ -108,8 +117,11 @@ export default function DashboardPage() {
                 setEmail(user.email || "");
                 try {
                     // Fetch user role
-                    const roleResponse = await axios.get(`/api/getUserRole/${user.uid}`);
-                    setUserRole(roleResponse.data.role);
+                    const roleResponse = await axios.get(`/api/activeRole?userId=${user.uid}`);
+                    if (roleResponse.data.ok) {
+                        setUserRole(roleResponse.data.role);
+                        setActiveRole(roleResponse.data.activeRole || "rider");
+                    }
 
                     const response = await axios.get(`api/getDocuments/stations`);
                     setStations(response.data);
@@ -327,7 +339,7 @@ export default function DashboardPage() {
         console.log("Successfully added", markersRef.current.length, "markers");
     }, [stations, mapReady, handleStationClick]);
 
-        const refreshOnBikeTrip = async (email: string) => {
+    const refreshOnBikeTrip = async (email: string) => {
         try {
             const response = await axios.get(`/api/trips/active/${email}`);
             setOnBikeTrip(response.data.trip !== null);
@@ -356,28 +368,28 @@ export default function DashboardPage() {
             const tripId = urlParams.get('trip');
 
             if (paymentStatus === 'success' && tripId) {
-            console.log('Payment successful for trip:', tripId);
-            
-            try {
-                const response = await fetch('/api/markBillingPaid', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ tripId }),
-                });
+                console.log('Payment successful for trip:', tripId);
 
-                const data = await response.json();
-                
-                if (data.ok) {
-                console.log('Billing marked as paid');
+                try {
+                    const response = await fetch('/api/markBillingPaid', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ tripId }),
+                    });
+
+                    const data = await response.json();
+
+                    if (data.ok) {
+                        console.log('Billing marked as paid');
+                    }
+                } catch (error) {
+                    console.error('Error marking billing as paid:', error);
                 }
-            } catch (error) {
-                console.error('Error marking billing as paid:', error);
-            }
 
-            // Clean up URL
-            window.history.replaceState({}, '', '/dashboard');
+                // Clean up URL
+                window.history.replaceState({}, '', '/dashboard');
             }
         };
 
@@ -699,7 +711,7 @@ export default function DashboardPage() {
                             View Reservation
                         </div>
                     )}
-                    {userRole === "admin" && (
+                    {isOperatorMode() && (
                         <div className="navOption adminOption" onClick={handleResetSystem}>
                             Reset System
                         </div>
@@ -707,9 +719,19 @@ export default function DashboardPage() {
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+
+                    {auth.currentUser && userRole === "dual" && (
+                        <RoleToggle
+                            user={auth.currentUser}
+                            onRoleChange={(newRole) => setActiveRole(newRole)}
+                        />
+                    )}
+
                     <NotificationButton />
-                    {userRole === "admin" && (
-                        <div className="adminBadge">ADMIN</div>
+                    {isOperatorMode() && (
+                        <div className="adminBadge">
+                            {userRole === "admin" ? "ADMIN" : "OPERATOR"}
+                        </div>
                     )}
                 </div>
             </div>
@@ -732,7 +754,7 @@ export default function DashboardPage() {
                                         <p className="capacity">Total Capacity: {station.capacity}</p>
                                         <p className="bikesAvailable">Bikes: {station.numberOfBikes}</p>
 
-                                        {userRole === "admin" && (
+                                        {isOperatorMode() && (
                                             <button
                                                 className="adminStationBtn"
                                                 onClick={(e) => handleSetStationService(station, e)}
@@ -756,7 +778,11 @@ export default function DashboardPage() {
                 )}
 
                 {currentTab === "trips" && (
-                    <TripHistoryPanel email={email} role={userRole} />
+                    <TripHistoryPanel
+                        email={email}
+                        role={userRole}
+                        activeRole={activeRole}
+                    />
                 )}
 
                 {currentTab === "pricing" && (
@@ -771,14 +797,14 @@ export default function DashboardPage() {
                         <div className="background"></div>
                         <div className="reservationMenu">
                             <FaXmark className="xButton" onClick={() => handleCloseReservationMenu()} />
-                            <p className="title">{userRole === "admin" ? "MANAGE BIKES" : "RESERVE or RETURN"}</p>
+                            <p className="title">{isOperatorMode() ? "MANAGE BIKES" : "RESERVE or RETURN"}</p>
                             <p>{selectedStation.name.toUpperCase()}</p>
                             <div className="bikeList">
                                 {
                                     bikes.map((bike, index) => (
                                         <div className={`bikeItem ${selectedBike?.id === bike.id ? 'selected' : ''} ${bike.status === "available" ? 'available' : 'reserved'}`} key={index} onClick={() => handleBikeClick(bike)}>
-                                            {bike.isEBike?<p>E-Bike: {bike.status.toUpperCase()}</p>:<p>Regular Bike: {bike.status.toUpperCase()}</p>}
-                                            {userRole === "admin" && bike.status !== "on_trip" && bike.status !== "reserved" && (
+                                            {bike.isEBike ? <p>E-Bike: {bike.status.toUpperCase()}</p> : <p>Regular Bike: {bike.status.toUpperCase()}</p>}
+                                            {isOperatorMode() && bike.status !== "on_trip" && bike.status !== "reserved" && (
                                                 <button
                                                     className="adminBikeAction"
                                                     onClick={(e) => {
@@ -794,7 +820,7 @@ export default function DashboardPage() {
                                 }
                             </div>
 
-                            {userRole === "admin" ? (
+                            {isOperatorMode() ? (
                                 <button className="actionButton" onClick={() => {
                                     if (!selectedBike) {
                                         alert("Please select a bike");
