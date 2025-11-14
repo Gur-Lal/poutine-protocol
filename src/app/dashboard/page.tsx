@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { auth } from "@/data/firebase";
 import { useRouter } from "next/navigation";
 import { onAuthStateChanged } from "firebase/auth";
@@ -10,14 +10,14 @@ import { FaXmark } from "react-icons/fa6";
 import { Reservation } from "@/domain/models/Reservation";
 import { createNotification } from "@/domain/services/notificationService";
 import TripHistoryPanel from "@/UI/components/TripHistoryPanel";
-import NotificationButton from "@/UI/components/notification-button";
+import NotificationButton from "@/UI/components/NotificationButton";
 import PaymentModal from "@/UI/components/PaymentModal";
 import BillingHistoryPanel from "@/UI/components/BillingHistoryPanel";
 import PricingPanel from "@/UI/components/PricingPanel";
 import axios from "axios";
 import { clientObserver, ClientSubscriber, ClientUpdateData } from "@/lib/client-observer";
 import "./dashboard.css";
-import { useRef } from "react";
+import RoleToggle from "@/UI/components/RoleToggle";
 
 declare global {
     interface Window {
@@ -27,8 +27,6 @@ declare global {
 
 export default function DashboardPage() {
     const [email, setEmail] = useState("");
-    // ADDED: Track user ID for publishing reservation updates
-    const [userId, setUserId] = useState("");
     const [stations, setStations] = useState<DockStation[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedStation, setSelectedStation] = useState<DockStation>();
@@ -45,7 +43,8 @@ export default function DashboardPage() {
     const [onBikeTrip, setOnBikeTrip] = useState(false);
 
     // Admin states
-    const [userRole, setUserRole] = useState("");
+    const [userRole, setUserRole] = useState<"rider" | "operator" | "admin" | "dual">("rider");
+    const [activeRole, setActiveRole] = useState<"operator" | "rider">("rider");
     const [showMoveModal, setShowMoveModal] = useState(false);
     const [destinationStationId, setDestinationStationId] = useState("");
 
@@ -59,6 +58,12 @@ export default function DashboardPage() {
     const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
     const [mapReady, setMapReady] = useState(false);
 
+    const isOperatorMode = () => {
+        return userRole === "admin" ||
+            userRole === "operator" ||
+            (userRole === "dual" && activeRole === "operator");
+    };
+
     const router = useRouter();
 
     const fetchStations = useCallback(async () => {
@@ -70,14 +75,13 @@ export default function DashboardPage() {
         }
     }, []);
 
-
-    const handleStationClick = (station: DockStation) => {
+    const handleStationClick = useCallback((station: DockStation) => {
         setSelectedStation(station);
         setOpenReservationMenu(true);
         fetchBikesByStation(station.id);
-    }
+    }, []);
 
-    // ADDED: Subscribe to BMSCore updates for real-time synchronization
+
     useEffect(() => {
         // Create subscriber to receive updates from BMSCore
         const dashboardSubscriber: ClientSubscriber = {
@@ -111,13 +115,13 @@ export default function DashboardPage() {
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
             if (user) {
                 setEmail(user.email || "");
-                // ADDED: Store user ID for publishing reservation updates
-                setUserId(user.uid);
-
                 try {
                     // Fetch user role
-                    const roleResponse = await axios.get(`/api/getUserRole/${user.uid}`);
-                    setUserRole(roleResponse.data.role);
+                    const roleResponse = await axios.get(`/api/activeRole?userId=${user.uid}`);
+                    if (roleResponse.data.ok) {
+                        setUserRole(roleResponse.data.role);
+                        setActiveRole(roleResponse.data.activeRole || "rider");
+                    }
 
                     const response = await axios.get(`api/getDocuments/stations`);
                     setStations(response.data);
@@ -132,7 +136,7 @@ export default function DashboardPage() {
 
         // Cleanup function to unsubscribe when component unmounts
         return () => {
-            clientObserver.unsubscribe(subscriberId); // ✅ Change to clientObserver
+            clientObserver.unsubscribe(subscriberId);
             unsubscribe();
         };
 
@@ -304,7 +308,6 @@ export default function DashboardPage() {
 
                 markersRef.current.push(marker);
 
-                const fullness = (station.numberOfBikes / station.capacity) * 100
                 const statusColor = getStationColor(station);
 
                 const infoWindow = new window.google.maps.InfoWindow({
@@ -336,19 +339,17 @@ export default function DashboardPage() {
         console.log("Successfully added", markersRef.current.length, "markers");
     }, [stations, mapReady, handleStationClick]);
 
-    const refreshActiveTrip = async (email: string) => {
+    const refreshOnBikeTrip = async (email: string) => {
         try {
             const response = await axios.get(`/api/trips/active/${email}`);
             setOnBikeTrip(response.data.trip !== null);
         } catch (error) {
-            console.log("Error fetching bikes:", error);
+            console.log("Error fetching active trip:", error);
         }
     }
 
     useEffect(() => {
-        if (currentTab === "stations") {
-            refreshActiveTrip(email);
-        } else {
+        if (currentTab !== "stations") {
             // Clear map when leaving stations tab
             if (mapInstanceRef.current) {
                 console.log("Leaving stations tab - clearing map");
@@ -358,7 +359,7 @@ export default function DashboardPage() {
             markersRef.current = [];
             setMapReady(false);
         }
-    }, [currentTab, email]);
+    }, [currentTab]);
 
     useEffect(() => {
         const handlePaymentSuccess = async () => {
@@ -367,37 +368,67 @@ export default function DashboardPage() {
             const tripId = urlParams.get('trip');
 
             if (paymentStatus === 'success' && tripId) {
-            console.log('Payment successful for trip:', tripId);
-            
-            try {
-                const response = await fetch('/api/markBillingPaid', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ tripId }),
-                });
+                console.log('Payment successful for trip:', tripId);
 
-                const data = await response.json();
-                
-                if (data.ok) {
-                console.log('Billing marked as paid');
+                try {
+                    const response = await fetch('/api/markBillingPaid', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ tripId }),
+                    });
+
+                    const data = await response.json();
+
+                    if (data.ok) {
+                        console.log('Billing marked as paid');
+                    }
+                } catch (error) {
+                    console.error('Error marking billing as paid:', error);
                 }
-            } catch (error) {
-                console.error('Error marking billing as paid:', error);
-            }
 
-            // Clean up URL
-            window.history.replaceState({}, '', '/dashboard');
+                // Clean up URL
+                window.history.replaceState({}, '', '/dashboard');
             }
         };
 
         handlePaymentSuccess();
     }, [currentTab]);
 
-    if (loading) {
-        return <p>Loading...</p>;
-    }
+    const refreshReservation = useCallback(async (email: string) => {
+        try {
+            const response = await axios.get(`/api/getReservation/${email}`);
+            const data = response.data;
+
+            if (data) {
+                const startTime = new Date(data.startTime._seconds * 1000);
+                const reservationExpiry = new Date(data.reservationExpiry._seconds * 1000);
+
+                setReservation({
+                    ...data,
+                    startTime: startTime,
+                    reservationExpiry: reservationExpiry
+                });
+
+                setReservedBikeId(data.bikeId);
+                await fetchBikeById(data.bikeId);
+            } else {
+                setReservation(undefined);
+                setReservedBikeId("");
+                setReservedBike(null);
+            }
+        } catch (error) {
+            console.log("Error fetching reservation: ", error);
+        }
+    }, []);
+
+    useEffect(() => {
+        if (openReservationMenu) {
+            refreshOnBikeTrip(email);
+            refreshReservation(email);
+        }
+    }, [email, openReservationMenu, refreshReservation]);
 
     const refreshStationAndBikes = async (stationId?: string) => {
         await fetchStations();
@@ -423,7 +454,6 @@ export default function DashboardPage() {
             console.log("Error fetching bike: ", error);
         }
     }
-
 
     const handleCloseReservationMenu = () => {
         setOpenReservationMenu(false);
@@ -462,41 +492,22 @@ export default function DashboardPage() {
     }
 
     const handleViewReservation = async (email: string) => {
-        try {
-            const response = await axios.get(`/api/getReservation/${email}`);
-            const data = response.data;
-            if (data) {
-                const startTime = new Date(data.startTime._seconds * 1000);
-                const reservationExpiry = new Date(data.reservationExpiry._seconds * 1000);
-
-                setReservation({
-                    ...data,
-                    startTime: startTime,
-                    reservationExpiry: reservationExpiry
-                });
-                setReservedBikeId(data.bikeId);
-                await fetchBikeById(data.bikeId);
-            } else {
-                setReservation(undefined);
-                setReservedBikeId("");
-                setReservedBike(null);
-            }
-        } catch (error) {
-            console.log("Error fetching reservation: ", error);
-        } finally {
-            setShowReservations(true);
-        }
+        await refreshReservation(email);
+        setShowReservations(true);
     };
 
-    const unlockBike = async (email: string, bikeId: string, stationId: string, stationName: string) => {
+    const unlockBike = async (email: string, bikeId: string, station: DockStation | undefined) => {
         try {
+            if (station === undefined && reservedBike) {
+                station = stations.find(st => st.id === reservedBike.stationId);
+            }
             const bikeResponse = await axios.get(`/api/getBikeById/${bikeId}`);
             const isEBike = bikeResponse.data.isEBike;
             const response = await axios.post(`/api/unlockBike`, {
                 email: email,
                 bikeId: bikeId,
-                startStationId: stationId,
-                startStationName: stationName,
+                startStationId: station!.id,
+                startStationName: station!.name,
                 isEBike: isEBike
             });
             if (response.data.ok) {
@@ -657,6 +668,11 @@ export default function DashboardPage() {
             return "rgb(97, 192, 60)";
         }
     }
+
+    if (loading) {
+        return <p>Loading...</p>;
+    }
+
     return (
         <main className="dashboardContainer">
             <div className="header">
@@ -667,14 +683,14 @@ export default function DashboardPage() {
                     >
                         Stations
                     </div>
+                    <div
+                        className={`navOption ${currentTab === "trips" ? "active" : ""}`}
+                        onClick={() => setCurrentTab("trips")}
+                    >
+                        Trip History
+                    </div>
                     {userRole !== "admin" && (
                         <>
-                            <div
-                                className={`navOption ${currentTab === "trips" ? "active" : ""}`}
-                                onClick={() => setCurrentTab("trips")}
-                            >
-                                Trip History
-                            </div>
                             <div
                                 className={`navOption ${currentTab === "billing" ? "active" : ""}`}
                                 onClick={() => setCurrentTab("billing")}
@@ -682,10 +698,10 @@ export default function DashboardPage() {
                                 Billing
                             </div>
                             <div
-                            className={`navOption ${currentTab === "pricing" ? "active" : ""}`}
-                            onClick={() => setCurrentTab("pricing")}
+                                className={`navOption ${currentTab === "pricing" ? "active" : ""}`}
+                                onClick={() => setCurrentTab("pricing")}
                             >
-                            Pricing
+                                Pricing
                             </div>
                         </>
                     )}
@@ -695,7 +711,7 @@ export default function DashboardPage() {
                             View Reservation
                         </div>
                     )}
-                    {userRole === "admin" && (
+                    {isOperatorMode() && (
                         <div className="navOption adminOption" onClick={handleResetSystem}>
                             Reset System
                         </div>
@@ -703,9 +719,19 @@ export default function DashboardPage() {
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+
+                    {auth.currentUser && userRole === "dual" && (
+                        <RoleToggle
+                            user={auth.currentUser}
+                            onRoleChange={(newRole) => setActiveRole(newRole)}
+                        />
+                    )}
+
                     <NotificationButton />
-                    {userRole === "admin" && (
-                        <div className="adminBadge">ADMIN</div>
+                    {isOperatorMode() && (
+                        <div className="adminBadge">
+                            {userRole === "admin" ? "ADMIN" : "OPERATOR"}
+                        </div>
                     )}
                 </div>
             </div>
@@ -728,7 +754,7 @@ export default function DashboardPage() {
                                         <p className="capacity">Total Capacity: {station.capacity}</p>
                                         <p className="bikesAvailable">Bikes: {station.numberOfBikes}</p>
 
-                                        {userRole === "admin" && (
+                                        {isOperatorMode() && (
                                             <button
                                                 className="adminStationBtn"
                                                 onClick={(e) => handleSetStationService(station, e)}
@@ -752,7 +778,11 @@ export default function DashboardPage() {
                 )}
 
                 {currentTab === "trips" && (
-                    <TripHistoryPanel email={email} role={userRole} />
+                    <TripHistoryPanel
+                        email={email}
+                        role={userRole}
+                        activeRole={activeRole}
+                    />
                 )}
 
                 {currentTab === "pricing" && (
@@ -767,14 +797,14 @@ export default function DashboardPage() {
                         <div className="background"></div>
                         <div className="reservationMenu">
                             <FaXmark className="xButton" onClick={() => handleCloseReservationMenu()} />
-                            <p className="title">{userRole === "admin" ? "MANAGE BIKES" : "RESERVE or RETURN"}</p>
+                            <p className="title">{isOperatorMode() ? "MANAGE BIKES" : "RESERVE or RETURN"}</p>
                             <p>{selectedStation.name.toUpperCase()}</p>
                             <div className="bikeList">
                                 {
                                     bikes.map((bike, index) => (
                                         <div className={`bikeItem ${selectedBike?.id === bike.id ? 'selected' : ''} ${bike.status === "available" ? 'available' : 'reserved'}`} key={index} onClick={() => handleBikeClick(bike)}>
-                                            {bike.isEBike?<p>E-Bike: {bike.status.toUpperCase()}</p>:<p>Regular Bike: {bike.status.toUpperCase()}</p>}
-                                            {userRole === "admin" && bike.status !== "on_trip" && bike.status !== "reserved" && (
+                                            {bike.isEBike ? <p>E-Bike: {bike.status.toUpperCase()}</p> : <p>Regular Bike: {bike.status.toUpperCase()}</p>}
+                                            {isOperatorMode() && bike.status !== "on_trip" && bike.status !== "reserved" && (
                                                 <button
                                                     className="adminBikeAction"
                                                     onClick={(e) => {
@@ -790,7 +820,7 @@ export default function DashboardPage() {
                                 }
                             </div>
 
-                            {userRole === "admin" ? (
+                            {isOperatorMode() ? (
                                 <button className="actionButton" onClick={() => {
                                     if (!selectedBike) {
                                         alert("Please select a bike");
@@ -866,7 +896,7 @@ export default function DashboardPage() {
                                     <p className="reservationStatus">{reservation.status.toUpperCase()}</p>
                                     <p>Start Time: {reservation.startTime.toLocaleString()}</p>
                                     <p style={{ marginBottom: "20px" }}>Expires: {reservation.reservationExpiry.toLocaleString()}</p>
-                                    <button className="actionButton" onClick={() => unlockBike(email, reservation.bikeId, startStation!.id, startStation!.name)} disabled={reservedBike?.status === "on_trip"}> Unlock Bike</button>
+                                    <button className="actionButton" onClick={() => unlockBike(email, reservation.bikeId, startStation)} disabled={reservedBike?.status === "on_trip"}> Unlock Bike</button>
                                 </div>
                             )}
                         </div>

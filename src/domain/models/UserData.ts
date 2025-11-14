@@ -1,4 +1,5 @@
 export type UserData = {
     email: string,
-    role?: string;
+    role?: "rider" | "operator" | "admin" | "dual";
+    activeRole?: "operator" | "rider";
 };

@@ -5,6 +5,7 @@ import { UserData } from "@/domain/models/UserData";
 import { TripData } from "@/domain/models/TripData";
 import { FaXmark } from "react-icons/fa6";
 import axios from "axios";
+import { auth } from "@/data/firebase";
 
 type FirebaseTimestamp = {
   _seconds: number;
@@ -25,23 +26,52 @@ type TripDataAPI = {
   isEBike: boolean;
 }
 
-export default function TripHistoryPanel({ email, role }: UserData) {
+interface TripHistoryPanelProps {
+  email: string;
+  role?: string;
+  activeRole?: "operator" | "rider";
+}
+
+export default function TripHistoryPanel({ email, role, activeRole }: TripHistoryPanelProps) {
   const [trips, setTrips] = useState<TripData[]>([]);
   const [loading, setLoading] = useState(true);
   const [filteredTrips, setFilteredTrips] = useState<TripData[]>([]);
   const [searched, setSearched] = useState(false);
   const [selectedTrip, setSelectedTrip] = useState<TripData>();
   const formRef = useRef<HTMLFormElement>(null);
+
+  const [viewAllTrips, setViewAllTrips] = useState(false);
+
   useEffect(() => {
     const fetchTrips = async () => {
       try {
         setLoading(true);
+
+        // Get current user for userId
+        const user = auth.currentUser;
+        if (!user) {
+          setLoading(false);
+          return;
+        }
+
         let url = "/api/trips";
-        if (role === "admin") {
-          url = "/api/trips/all";
+
+        // Determine which trips to fetch based on role
+        if (role === "dual") {
+          // Dual-role users can always toggle view regardless of activeRole
+          if (viewAllTrips) {
+            url = `/api/trips/all?userId=${user.uid}&email=${email}`;
+          } else {
+            url = `/api/trips/${email}`;
+          }
+        } else if (role === "admin" || role === "operator") {
+          // Admin and operators always see all trips
+          url = `/api/trips/all?userId=${user.uid}&email=${email}`;
         } else {
+          // Regular riders see only their trips
           url = `/api/trips/${email}`;
         }
+
         const res = await axios.get(url);
         if (res.data.ok) {
           const tripsData: TripData[] = res.data.trips.map((trip: TripDataAPI) => ({
@@ -65,25 +95,25 @@ export default function TripHistoryPanel({ email, role }: UserData) {
     };
 
     fetchTrips();
-  }, [email, role]);
+  }, [email, role, viewAllTrips]);
 
   const filterTrips = (tripId?: string, bikeType?: string, startDate?: Date, endDate?: Date) => {
     const filtered = trips.filter((trip) => {
 
-      if(tripId && !trip.id?.toLowerCase().includes(tripId.toLowerCase())){
+      if (tripId && !trip.id?.toLowerCase().includes(tripId.toLowerCase())) {
         return false;
       }
 
-      if(bikeType){
-        if(bikeType === "ebike" && !trip.isEBike){
+      if (bikeType) {
+        if (bikeType === "ebike" && !trip.isEBike) {
           return false;
         }
-        if(bikeType === "regular" && trip.isEBike){
+        if (bikeType === "regular" && trip.isEBike) {
           return false;
         }
       }
 
-      if(startDate) {
+      if (startDate) {
         const searchDate = new Date(startDate);
         const searchYear = searchDate.getFullYear();
         const searchMonth = searchDate.getMonth();
@@ -96,13 +126,13 @@ export default function TripHistoryPanel({ email, role }: UserData) {
         const tripDay = tripDate.getDate();
         const normalizedTripDate = new Date(tripYear, tripMonth, tripDay, 0, 0, 0, 0);
 
-        if(normalizedTripDate < normalizedSearchDate){
+        if (normalizedTripDate < normalizedSearchDate) {
           return false;
         }
       }
 
-      if(endDate) {
-        if(!trip.endTime){
+      if (endDate) {
+        if (!trip.endTime) {
           return false;
         }
 
@@ -113,7 +143,7 @@ export default function TripHistoryPanel({ email, role }: UserData) {
         const normalizedSearchDate = new Date(searchYear, searchMonth, searchDay, 23, 59, 59, 999);
 
         const tripEndDate = new Date(trip.endTime);
-        if(tripEndDate > normalizedSearchDate) {
+        if (tripEndDate > normalizedSearchDate) {
           return false;
         }
       }
@@ -135,18 +165,18 @@ export default function TripHistoryPanel({ email, role }: UserData) {
     let startDate: Date | undefined = undefined;
     let endDate: Date | undefined = undefined;
 
-    if(startDateStr){
+    if (startDateStr) {
       const [year, month, day] = startDateStr.split('-').map(Number);
       startDate = new Date(year, month - 1, day);
     }
 
     if (endDateStr) {
       const [year, month, day] = endDateStr.split('-').map(Number);
-      endDate = new Date(year, month - 1, day); 
+      endDate = new Date(year, month - 1, day);
     }
 
-    if(endDate && startDate){
-      if(endDate < startDate){
+    if (endDate && startDate) {
+      if (endDate < startDate) {
         alert("Selected end date is before selected start date.");
         return;
       }
@@ -157,7 +187,7 @@ export default function TripHistoryPanel({ email, role }: UserData) {
   const clearSearch = () => {
     setSearched(false);
     setFilteredTrips([]);
-    if(formRef.current){
+    if (formRef.current) {
       formRef.current.reset();
     }
   };
@@ -172,78 +202,108 @@ export default function TripHistoryPanel({ email, role }: UserData) {
     const hours = Math.floor(diffMs / (1000 * 60 * 60));
     const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
     const seconds = Math.floor((diffMs % (1000 * 60)) / 1000);
-  return (
-    <div>
-      <p>Duration: {hours}h {minutes}m {seconds}s</p>
-    </div>
-  );
+    return (
+      <div>
+        <p>Duration: {hours}h {minutes}m {seconds}s</p>
+      </div>
+    );
   }
   return (
     <div className="tripHistoryPanel">
       <div className="tripHistoryHeader">
-      <h2>Trip History {role === "admin" ? "(All Users)" : ""}</h2>
-      <form ref={formRef} onSubmit={handleSearch} className="filterForm">
-        <div className="inputFieldsBox">
-          <div className="inputLabelBox">
-            <p className="label">Trip ID</p>
-            <input type="text" className="searchBar" name="tripId"placeholder="Enter Trip ID"/>
-          </div>
-          <div className="inputLabelBox">
-            <p className="label">Bike Type</p>
-            <select className="searchBar" name="bikeType" defaultValue="">
-              <option value="">All Bike Types</option>
-              <option value="regular">Regular</option>
-              <option value="ebike">E-Bike</option>
-            </select>
-          </div>
+        <div className="tripHistoryHeader">
+          <div className="tripHistoryHeaderRow">
+            <h2>
+              Trip History
+              {role === "admin" ? " (All Users)" :
+                role === "operator" ? " (All Users)" :
+                  role === "dual" ? (viewAllTrips ? " (All Users)" : " (My Trips)") :
+                    " (My Trips)"}
+            </h2>
 
-          <div className="inputLabelBox">
-            <p className="label">Start Date</p>
-            <input type="date" className="searchBar" name="startDate" placeholder="Start Date"/>
-          </div>
-
-          <div className="inputLabelBox">
-            <p className="label">End Date</p>
-            <input type="date" className="searchBar" name="endDate" placeholder="End Date"/>
+            {/* Toggle for dual-role users */}
+            {role === "dual" && (
+              <div className="viewToggleContainer">
+                <span className="viewToggleLabel">View:</span>
+                <button
+                  onClick={() => setViewAllTrips(false)}
+                  className={`viewToggleButton ${!viewAllTrips ? "active" : ""}`}
+                >
+                  My Trips
+                </button>
+                <button
+                  onClick={() => setViewAllTrips(true)}
+                  className={`viewToggleButton ${viewAllTrips ? "active" : ""}`}
+                >
+                  All Trips
+                </button>
+              </div>
+            )}
           </div>
         </div>
-        <div className="buttonBox">
-          <button type="submit" className="searchButton">Search</button>
-          <button type="button" className="searchButton"onClick={clearSearch} disabled={!searched}>Clear</button>
-        </div>
-      </form>
-      {searched && filteredTrips.length === 0 && <p>No trips match your search criteria. Please clear filters.</p>}
+
+        <form ref={formRef} onSubmit={handleSearch} className="filterForm">
+          <div className="inputFieldsBox">
+            <div className="inputLabelBox">
+              <p className="label">Trip ID</p>
+              <input type="text" className="searchBar" name="tripId" placeholder="Enter Trip ID" />
+            </div>
+            <div className="inputLabelBox">
+              <p className="label">Bike Type</p>
+              <select className="searchBar" name="bikeType" defaultValue="">
+                <option value="">All Bike Types</option>
+                <option value="regular">Regular</option>
+                <option value="ebike">E-Bike</option>
+              </select>
+            </div>
+
+            <div className="inputLabelBox">
+              <p className="label">Start Date</p>
+              <input type="date" className="searchBar" name="startDate" placeholder="Start Date" />
+            </div>
+
+            <div className="inputLabelBox">
+              <p className="label">End Date</p>
+              <input type="date" className="searchBar" name="endDate" placeholder="End Date" />
+            </div>
+          </div>
+          <div className="buttonBox">
+            <button type="submit" className="searchButton">Search</button>
+            <button type="button" className="searchButton" onClick={clearSearch} disabled={!searched}>Clear</button>
+          </div>
+        </form>
+        {searched && filteredTrips.length === 0 && <p>No trips match your search criteria. Please clear filters.</p>}
       </div>
       {(!searched || filteredTrips.length !== 0) &&
-      <table className = "tripHistoryTable">
-        <thead>
-          <tr className="tripTableHeader">
-            <th>Trip ID</th>
-            <th>Rider</th>
-            <th>Start Time</th>
-            <th>End Time</th>
-            <th>Start Station</th>
-            <th>End Station</th>
-            <th>Bike Type</th>
-            <th>Cost</th>
-          </tr>
-        </thead>
-        <tbody>
-          {displayTrips.map((trip) => (
-            <tr key={trip.id} className="tripItem" onClick={()=>setSelectedTrip(trip)}>
-              <td>{trip.id}</td>
-              <td>{trip.email}</td>
-              <td>{new Date(trip.startTime).toLocaleString()}</td>
-              <td>{new Date(trip.endTime!).toLocaleString()}</td>
-              <td>{trip.startStationName}</td>
-              <td>{trip.endStationName}</td>
-              <td>{trip.isEBike ? "E-Bike" : "Regular"}</td>
-              <td>${trip.priceBreakdown?.total.toFixed(2) || '0.00'}</td>
+        <table className="tripHistoryTable">
+          <thead>
+            <tr className="tripTableHeader">
+              <th>Trip ID</th>
+              <th>Rider</th>
+              <th>Start Time</th>
+              <th>End Time</th>
+              <th>Start Station</th>
+              <th>End Station</th>
+              <th>Bike Type</th>
+              <th>Cost</th>
             </tr>
-          ))
-          }
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {displayTrips.map((trip) => (
+              <tr key={trip.id} className="tripItem" onClick={() => setSelectedTrip(trip)}>
+                <td>{trip.id}</td>
+                <td>{trip.email}</td>
+                <td>{new Date(trip.startTime).toLocaleString()}</td>
+                <td>{new Date(trip.endTime!).toLocaleString()}</td>
+                <td>{trip.startStationName}</td>
+                <td>{trip.endStationName}</td>
+                <td>{trip.isEBike ? "E-Bike" : "Regular"}</td>
+                <td>${trip.priceBreakdown?.total.toFixed(2) || '0.00'}</td>
+              </tr>
+            ))
+            }
+          </tbody>
+        </table>
       }
       {selectedTrip && (
         <>
@@ -251,41 +311,41 @@ export default function TripHistoryPanel({ email, role }: UserData) {
           <div className="tripDetails">
             <FaXmark className="xButton" onClick={() => setSelectedTrip(undefined)} />
             <h3>Trip Details</h3>
-            
+
             <div className="detailRow">
               <span>Trip ID: {selectedTrip.id}</span>
             </div>
-            
+
             <div className="detailRow">
               <span>Bike ID: {selectedTrip.bikeId}</span>
             </div>
-            
+
             <div className="detailRow">
               <span>Start Station: {selectedTrip.startStationName}</span>
             </div>
-            
+
             <div className="detailRow">
               <span>End Station: {selectedTrip.endStationName}</span>
             </div>
-            
+
             <div className="detailRow">
               <span>Start Time: {new Date(selectedTrip.startTime).toLocaleString()}</span>
             </div>
-            
+
             <div className="detailRow">
               <span>End Time: {selectedTrip.endTime ? new Date(selectedTrip.endTime).toLocaleString() : "N/A"}</span>
             </div>
-            
+
             <div className="detailRow">
               <span>Bike Type: {selectedTrip.isEBike ? "E-Bike" : "Regular"}</span>
             </div>
             <div className="timeline">
               <p>Started ride at: {selectedTrip.startTime.toLocaleTimeString()}</p>
               <p className="timelineStationName">{selectedTrip.startStationName}</p>
-              <br/>
-              <br/>
-              <br/>
-              <br/>
+              <br />
+              <br />
+              <br />
+              <br />
               <p>Ended ride at: {selectedTrip.endTime!.toLocaleTimeString()}</p>
               <p className="timelineStationName">{selectedTrip.endStationName}</p>
             </div>

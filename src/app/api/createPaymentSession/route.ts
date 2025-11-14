@@ -14,6 +14,7 @@ const PRICING_CONFIG = {
   ebike: { base: 2, perMinute: 0.15, eBikeCharge: 1 },
   monthly: { monthlyFee: 30 }
 };
+const DUAL_ROLE_DISCOUNT_RATE = 0.10; // 10% discount for dual-role users
 
 export async function POST(req: Request) {
   try {
@@ -21,7 +22,7 @@ export async function POST(req: Request) {
 
     // Fetch trip data
     const tripDoc = await adminDb.collection("trips").doc(tripId).get();
-    
+
     if (!tripDoc.exists) {
       return NextResponse.json(
         { ok: false, error: "Trip not found" },
@@ -30,15 +31,15 @@ export async function POST(req: Request) {
     }
 
     const tripData = tripDoc.data();
-    
+
     if (!tripData) {
       return NextResponse.json(
         { ok: false, error: "Trip data not found" },
         { status: 404 }
       );
     }
-    
-    // Fetch user to get pricing plan and userId
+
+    // Fetch user to get pricing plan, userId, role, and activeRole
     const userSnapshot = await adminDb
       .collection("users")
       .where("email", "==", email)
@@ -55,26 +56,29 @@ export async function POST(req: Request) {
     const userData = userSnapshot.docs[0].data();
     const userId = userSnapshot.docs[0].id;
     const pricingPlan = userData.pricingPlan || "regular";
+    const role = userData?.role || "rider";
+    const activeRole = userData?.activeRole || (role === "dual" ? "rider" : role);
+    const tierDiscount = userData?.tierDiscount || 0;
 
     // Fetch bike to determine if it's an e-bike
     const bikeDoc = await adminDb.collection("bikes").doc(tripData.bikeId).get();
-    
+
     if (!bikeDoc.exists) {
       return NextResponse.json(
         { ok: false, error: "Bike not found" },
         { status: 404 }
       );
     }
-    
+
     const bikeData = bikeDoc.data();
-    
+
     if (!bikeData) {
       return NextResponse.json(
         { ok: false, error: "Bike data not found" },
         { status: 404 }
       );
     }
-    
+
     const isEBike = bikeData.isEBike === true;
 
     // Calculate trip cost using pricing strategies
@@ -108,6 +112,18 @@ export async function POST(req: Request) {
 
     // Calculate amount using the strategy
     let amount = pricingStrategy.calculatePrice(tripForPricing);
+    // Apply tier discount first (if not monthly)
+    if (pricingPlan.toLowerCase() !== "monthly" && tierDiscount > 0) {
+      amount = amount * (1 - tierDiscount);
+    }
+
+    // Check if dual-role discount applies
+    const isDualRoleDiscount = role === "dual" && activeRole === "rider" && pricingPlan.toLowerCase() !== "monthly";
+
+    // Apply dual-role discount on top of tier discount
+    if (isDualRoleDiscount) {
+      amount = amount * (1 - DUAL_ROLE_DISCOUNT_RATE);
+    }
 
     // Round to 2 decimal places
     amount = Math.round(amount * 100) / 100;
@@ -120,7 +136,9 @@ export async function POST(req: Request) {
         perMinutePrice: 0,
         eBikeSurcharge: 0,
         isMonthlySubscription: true,
-        total: 0
+        total: 0,
+        dualRoleDiscount: 0,
+        tierDiscount: 0,
       };
     } else {
       let basePrice = 0;
@@ -142,7 +160,9 @@ export async function POST(req: Request) {
         perMinutePrice: Math.round(durationMinutes * perMinuteRate * 100) / 100,
         eBikeSurcharge: eBikeSurcharge,
         isMonthlySubscription: false,
-        total: amount
+        total: amount,
+        dualRoleDiscount: isDualRoleDiscount ? DUAL_ROLE_DISCOUNT_RATE : 0,
+        tierDiscount: tierDiscount,
       };
     }
 
@@ -171,7 +191,8 @@ export async function POST(req: Request) {
         skipPayment: true,
         message: "Monthly subscription - no charge for this trip",
         durationMinutes: durationMinutes.toFixed(1),
-        pricingPlan
+        pricingPlan: "Monthly",
+        priceBreakdown
       });
     }
 
@@ -187,7 +208,7 @@ export async function POST(req: Request) {
     const existingBilling = await billingService.getBillingByTripId(tripId);
 
     if (!existingBilling) {
-      // Create billing record with "pending" status
+      // Create billing record with "paid" status
       await billingService.createBilling({
         userId,
         email,
@@ -195,7 +216,7 @@ export async function POST(req: Request) {
         amount,
         description,
         date: new Date(),
-        status: "paid",  // ← Changed from "pending"
+        status: "paid",
       });
     }
 
@@ -204,14 +225,15 @@ export async function POST(req: Request) {
       checkoutUrl,
       amount,
       durationMinutes: durationMinutes.toFixed(1),
-      pricingPlan
+      pricingPlan: pricingPlan === "regular" ? "Pay-as-you-go" : pricingPlan,
+      priceBreakdown
     });
   } catch (error) {
     console.error("Error creating payment session:", error);
     return NextResponse.json(
-      { 
-        ok: false, 
-        error: error instanceof Error ? error.message : "Unknown error" 
+      {
+        ok: false,
+        error: error instanceof Error ? error.message : "Unknown error"
       },
       { status: 500 }
     );

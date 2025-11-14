@@ -210,7 +210,6 @@ export default function LandingPage() {
 
                 markersRef.current.push(marker);
 
-                const fullness = (station.numberOfBikes / station.capacity) * 100;
                 const statusColor = getStationColor(station);
 
                 const infoWindow = new window.google.maps.InfoWindow({
