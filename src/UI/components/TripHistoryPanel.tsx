@@ -40,16 +40,38 @@ export default function TripHistoryPanel({ email, role, activeRole }: TripHistor
   const [selectedTrip, setSelectedTrip] = useState<TripData>();
   const formRef = useRef<HTMLFormElement>(null);
 
+  const [viewAllTrips, setViewAllTrips] = useState(false);
+
   useEffect(() => {
     const fetchTrips = async () => {
       try {
         setLoading(true);
+
+        // Get current user for userId
+        const user = auth.currentUser;
+        if (!user) {
+          setLoading(false);
+          return;
+        }
+
         let url = "/api/trips";
-        if (role === "admin") {
-          url = "/api/trips/all";
+
+        // Determine which trips to fetch based on role
+        if (role === "dual") {
+          // Dual-role users can always toggle view regardless of activeRole
+          if (viewAllTrips) {
+            url = `/api/trips/all?userId=${user.uid}&email=${email}`;
+          } else {
+            url = `/api/trips/${email}`;
+          }
+        } else if (role === "admin" || role === "operator") {
+          // Admin and operators always see all trips
+          url = `/api/trips/all?userId=${user.uid}&email=${email}`;
         } else {
+          // Regular riders see only their trips
           url = `/api/trips/${email}`;
         }
+
         const res = await axios.get(url);
         if (res.data.ok) {
           const tripsData: TripData[] = res.data.trips.map((trip: TripDataAPI) => ({
@@ -73,7 +95,7 @@ export default function TripHistoryPanel({ email, role, activeRole }: TripHistor
     };
 
     fetchTrips();
-  }, [email, role]);
+  }, [email, role, viewAllTrips]);
 
   const filterTrips = (tripId?: string, bikeType?: string, startDate?: Date, endDate?: Date) => {
     const filtered = trips.filter((trip) => {
@@ -189,7 +211,37 @@ export default function TripHistoryPanel({ email, role, activeRole }: TripHistor
   return (
     <div className="tripHistoryPanel">
       <div className="tripHistoryHeader">
-        <h2>Trip History {role === "admin" ? "(All Users)" : ""}</h2>
+        <div className="tripHistoryHeader">
+          <div className="tripHistoryHeaderRow">
+            <h2>
+              Trip History
+              {role === "admin" ? " (All Users)" :
+                role === "operator" ? " (All Users)" :
+                  role === "dual" ? (viewAllTrips ? " (All Users)" : " (My Trips)") :
+                    " (My Trips)"}
+            </h2>
+
+            {/* Toggle for dual-role users */}
+            {role === "dual" && (
+              <div className="viewToggleContainer">
+                <span className="viewToggleLabel">View:</span>
+                <button
+                  onClick={() => setViewAllTrips(false)}
+                  className={`viewToggleButton ${!viewAllTrips ? "active" : ""}`}
+                >
+                  My Trips
+                </button>
+                <button
+                  onClick={() => setViewAllTrips(true)}
+                  className={`viewToggleButton ${viewAllTrips ? "active" : ""}`}
+                >
+                  All Trips
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
         <form ref={formRef} onSubmit={handleSearch} className="filterForm">
           <div className="inputFieldsBox">
             <div className="inputLabelBox">
