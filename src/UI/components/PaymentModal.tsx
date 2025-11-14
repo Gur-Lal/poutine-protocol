@@ -12,6 +12,16 @@ interface PaymentModalProps {
   onPaymentComplete?: () => void;
 }
 
+interface PriceBreakdown {
+  basePrice: number;
+  perMinutePrice: number;
+  eBikeSurcharge: number;
+  isMonthlySubscription: boolean;
+  total: number;
+  dualRoleDiscount?: number;
+  tierDiscount?: number;
+}
+
 export default function PaymentModal({
   isOpen,
   tripId,
@@ -24,6 +34,7 @@ export default function PaymentModal({
   const [duration, setDuration] = useState<string>("0");
   const [pricingPlan, setPricingPlan] = useState<string>("regular");
   const [error, setError] = useState<string>("");
+  const [priceBreakdown, setPriceBreakdown] = useState<PriceBreakdown | null>(null);
 
   useEffect(() => {
     if (isOpen && tripId) {
@@ -53,6 +64,7 @@ export default function PaymentModal({
       setAmount(data.amount);
       setDuration(data.durationMinutes);
       setPricingPlan(data.pricingPlan);
+      setPriceBreakdown(data.priceBreakdown || null);
 
       // If monthly subscription, skip payment
       if (data.skipPayment) {
@@ -74,7 +86,7 @@ export default function PaymentModal({
 
   const handlePayNow = async () => {
     setLoading(true);
-    
+
     try {
       const response = await fetch("/api/createPaymentSession", {
         method: "POST",
@@ -99,6 +111,8 @@ export default function PaymentModal({
     }
   };
 
+  const hasDiscount = priceBreakdown && (priceBreakdown.dualRoleDiscount || priceBreakdown.tierDiscount);
+
   if (!isOpen) return null;
 
   return (
@@ -106,7 +120,7 @@ export default function PaymentModal({
       <div className="paymentModalBackdrop" onClick={onClose}></div>
       <div className="paymentModal">
         <FaXmark className="closeButton" onClick={onClose} />
-        
+
         <div className="paymentHeader">
           <FaCreditCard className="paymentIcon" />
           <h2>Trip Payment</h2>
@@ -128,7 +142,7 @@ export default function PaymentModal({
           <div className="paymentContent">
             <div className="tripSummary">
               <h3>Trip Summary</h3>
-              
+
               <div className="summaryRow">
                 <FaClock className="summaryIcon" />
                 <span>Duration:</span>
@@ -141,10 +155,70 @@ export default function PaymentModal({
                 <strong>{pricingPlan}</strong>
               </div>
 
+              {/* Price Breakdown */}
+              {priceBreakdown && !priceBreakdown.isMonthlySubscription && (
+                <div
+                  style={{
+                    marginTop: "20px",
+                    paddingTop: "15px",
+                    borderTop: "1px solid rgba(255,255,255,0.2)",
+                  }}
+                >
+                  <div className="summaryRow" style={{ fontSize: "14px", opacity: 0.9 }}>
+                    <span>Base Price:</span>
+                    <span>${priceBreakdown.basePrice.toFixed(2)}</span>
+                  </div>
+                  <div className="summaryRow" style={{ fontSize: "14px", opacity: 0.9 }}>
+                    <span>Per Minute ({duration} min):</span>
+                    <span>${priceBreakdown.perMinutePrice.toFixed(2)}</span>
+                  </div>
+                  {priceBreakdown.eBikeSurcharge > 0 && (
+                    <div className="summaryRow" style={{ fontSize: "14px", opacity: 0.9 }}>
+                      <span>E-Bike Surcharge:</span>
+                      <span>${priceBreakdown.eBikeSurcharge.toFixed(2)}</span>
+                    </div>
+                  )}
+
+                  {/* Show tier discount */}
+                  {priceBreakdown?.tierDiscount && priceBreakdown.tierDiscount > 0 && (
+                    <div className="summaryRow" style={{ fontSize: "14px", color: "#4ade80" }}>
+                      <span>Tier Discount ({((priceBreakdown.tierDiscount ?? 0) * 100).toFixed(0)}%):</span>
+                      <span>-${(((priceBreakdown.basePrice ?? 0) + (priceBreakdown.perMinutePrice ?? 0) + (priceBreakdown.eBikeSurcharge ?? 0)) * (priceBreakdown.tierDiscount ?? 0)).toFixed(2)}</span>
+                    </div>
+                  )}
+
+                  {/* Show dual-role discount */}
+                  {priceBreakdown?.dualRoleDiscount && priceBreakdown.dualRoleDiscount > 0 && (
+                    <div className="summaryRow" style={{ fontSize: "14px", color: "#a78bfa" }}>
+                      <span>Dual-Role Discount ({((priceBreakdown.dualRoleDiscount ?? 0) * 100).toFixed(0)}%):</span>
+                      <span>-${(amount / (1 - (priceBreakdown.dualRoleDiscount ?? 0)) * (priceBreakdown.dualRoleDiscount ?? 0)).toFixed(2)}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div className="totalRow">
                 <span>Total Amount:</span>
-                <strong className="totalAmount">${amount.toFixed(2)} CAD</strong>
+                <strong className="totalAmount">
+                  ${amount.toFixed(2)} CAD
+                </strong>
               </div>
+
+              {hasDiscount && (
+                <div
+                  style={{
+                    marginTop: "10px",
+                    padding: "8px",
+                    background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                    borderRadius: "8px",
+                    textAlign: "center",
+                    fontSize: "13px",
+                    fontWeight: "bold",
+                  }}
+                >
+                  ✨ You saved with special discounts!
+                </div>
+              )}
             </div>
 
             {pricingPlan.toLowerCase() === "monthly" ? (
@@ -158,8 +232,8 @@ export default function PaymentModal({
                   <p>You&apos;ll be redirected to Stripe&apos;s secure checkout page</p>
                 </div>
 
-                <button 
-                  onClick={handlePayNow} 
+                <button
+                  onClick={handlePayNow}
                   className="payButton"
                   disabled={loading}
                 >
