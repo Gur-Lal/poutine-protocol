@@ -60,7 +60,7 @@ export async function POST(req: Request) {
     const role = userData?.role || "rider";
     const activeRole = userData?.activeRole || (role === "dual" ? "rider" : role);
     const tierDiscount = userData?.tierDiscount || 0;
-    let flexBalance = userData?.flexBalance || 0;
+    const flexBalance = userData?.flexBalance || 0;
 
     // Fetch bike to determine if it's an e-bike
     const bikeDoc = await adminDb.collection("bikes").doc(tripData.bikeId).get();
