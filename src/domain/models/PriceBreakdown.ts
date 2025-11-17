@@ -4,4 +4,8 @@ export interface PriceBreakdown {
   eBikeSurcharge: number;
   isMonthlySubscription: boolean;
   total: number;
+  dualRoleDiscount?: number;
+  tierDiscount?: number;
+  flexBalanceUsed?: number;
+  flexBalanceEarned?: number;
 }
