@@ -15,6 +15,7 @@ const PRICING_CONFIG = {
   monthly: { monthlyFee: 30 }
 };
 const DUAL_ROLE_DISCOUNT_RATE = 0.10; // 10% discount for dual-role users
+const FLEX_BALANCE_REWARD = 1.00; // reward for returning to low-capacity stations
 
 export async function POST(req: Request) {
   try {
@@ -59,6 +60,7 @@ export async function POST(req: Request) {
     const role = userData?.role || "rider";
     const activeRole = userData?.activeRole || (role === "dual" ? "rider" : role);
     const tierDiscount = userData?.tierDiscount || 0;
+    const flexBalance = userData?.flexBalance || 0;
 
     // Fetch bike to determine if it's an e-bike
     const bikeDoc = await adminDb.collection("bikes").doc(tripData.bikeId).get();
@@ -125,8 +127,45 @@ export async function POST(req: Request) {
       amount = amount * (1 - DUAL_ROLE_DISCOUNT_RATE);
     }
 
-    // Round to 2 decimal places
+     // Subtract user's flex balance from the amount before awarding new flex dollars
+    let flexBalanceUsed = 0;
+    if (flexBalance > 0 && pricingPlan.toLowerCase() !== "monthly") {
+      flexBalanceUsed = Math.min(flexBalance, amount);
+      amount = amount - flexBalanceUsed;
+    }
+
+    // Round amount to 2 decimal places
     amount = Math.round(amount * 100) / 100;
+
+    let newFlexBalance = flexBalance - flexBalanceUsed; // Subtract what they used
+    let flexBalanceEarned = 0;
+
+    // Fetch endStation data to check capacity and award flex balance
+    if (tripData.endStationId && pricingPlan.toLowerCase() !== "monthly") {
+      const endStationDoc = await adminDb.collection("stations").doc(tripData.endStationId).get();
+      
+      if (endStationDoc.exists) {
+        const endStationData = endStationDoc.data();
+        const numberOfBikes = endStationData?.numberOfBikes || 0;
+        const capacity = endStationData?.capacity || 1;
+        
+        // Calculate capacity percentage: ((numberOfBikes - 1) / capacity) * 100
+        // We use numberOfBikes - 1 because this is calculated after the bike was returned
+        const capacityPercentage = ((numberOfBikes - 1) / capacity) * 100;
+        
+        // If capacity is <= 25%, award $1 flex balance
+        if (capacityPercentage <= 25) {
+          flexBalanceEarned = FLEX_BALANCE_REWARD;
+          newFlexBalance += flexBalanceEarned;
+        }
+      }
+    }
+
+    // Update user's flex balance in the database
+    await adminDb.collection("users").doc(userId).update({
+      flexBalance: newFlexBalance
+    });
+
 
     let priceBreakdown;
 
@@ -137,8 +176,6 @@ export async function POST(req: Request) {
         eBikeSurcharge: 0,
         isMonthlySubscription: true,
         total: 0,
-        dualRoleDiscount: 0,
-        tierDiscount: 0,
       };
     } else {
       let basePrice = 0;
@@ -161,8 +198,10 @@ export async function POST(req: Request) {
         eBikeSurcharge: eBikeSurcharge,
         isMonthlySubscription: false,
         total: amount,
-        dualRoleDiscount: isDualRoleDiscount ? DUAL_ROLE_DISCOUNT_RATE : 0,
-        tierDiscount: tierDiscount,
+        ...(isDualRoleDiscount && { dualRoleDiscount: DUAL_ROLE_DISCOUNT_RATE }), 
+        ...(tierDiscount > 0 && { tierDiscount: tierDiscount }), 
+        ...(flexBalanceUsed > 0 && { flexBalanceUsed: flexBalanceUsed }), 
+        ...(flexBalanceEarned > 0 && { flexBalanceEarned: flexBalanceEarned }), 
       };
     }
 
