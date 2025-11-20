@@ -18,6 +18,9 @@ import axios from "axios";
 import { clientObserver, ClientSubscriber, ClientUpdateData } from "@/lib/client-observer";
 import "./dashboard.css";
 import RoleToggle from "@/UI/components/RoleToggle";
+import AccountButton from "@/UI/components/AccountButton";
+import { signOut } from "firebase/auth";
+import { User } from "firebase/auth";
 
 declare global {
     interface Window {
@@ -41,6 +44,9 @@ export default function DashboardPage() {
     const [showPaymentModal, setShowPaymentModal] = useState(false);
     const [paymentTripId, setPaymentTripId] = useState<string>("");
     const [onBikeTrip, setOnBikeTrip] = useState(false);
+
+    const [user, setUser] = useState<User | null>(null);
+    const subscriberIdRef = useRef<string>("");
 
     // Admin states
     const [userRole, setUserRole] = useState<"rider" | "operator" | "admin" | "dual">("rider");
@@ -81,6 +87,14 @@ export default function DashboardPage() {
         fetchBikesByStation(station.id);
     }, []);
 
+    const handleLogout = async () => {
+        if (subscriberIdRef.current) {
+            clientObserver.unsubscribe(subscriberIdRef.current);
+        }
+
+        await signOut(auth);
+        router.push("/");
+    };
 
     useEffect(() => {
         // Create subscriber to receive updates from BMSCore
@@ -110,11 +124,13 @@ export default function DashboardPage() {
 
         // Subscribe with unique ID
         const subscriberId = `dashboard-${Date.now()}`;
+        subscriberIdRef.current = subscriberId;
         clientObserver.subscribe(subscriberId, dashboardSubscriber);
 
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
             if (user) {
                 setEmail(user.email || "");
+                setUser(user);
                 try {
                     // Fetch user role
                     const roleResponse = await axios.get(`/api/activeRole?userId=${user.uid}`);
@@ -129,6 +145,10 @@ export default function DashboardPage() {
                     console.log("Error fetching stations: ", error);
                 }
             } else {
+                setUser(null);
+                setEmail("");
+                setStations([]);
+                setReservation(undefined);
                 router.push("/login");
             }
             setLoading(false);
@@ -676,6 +696,8 @@ export default function DashboardPage() {
     return (
         <main className="dashboardContainer">
             <div className="header">
+                <NotificationButton />
+
                 <div className="navBar">
                     <div
                         className={`navOption ${currentTab === "stations" ? "active" : ""}`}
@@ -718,8 +740,11 @@ export default function DashboardPage() {
                     )}
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-
+                <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '15px'
+                }}>
                     {auth.currentUser && userRole === "dual" && (
                         <RoleToggle
                             user={auth.currentUser}
@@ -727,14 +752,16 @@ export default function DashboardPage() {
                         />
                     )}
 
-                    <NotificationButton />
                     {isOperatorMode() && (
                         <div className="adminBadge">
                             {userRole === "admin" ? "ADMIN" : "OPERATOR"}
                         </div>
                     )}
+
+                    {user && <AccountButton user={user} onLogout={handleLogout} />}
                 </div>
             </div>
+
             <div className="dashboardArea">
                 {currentTab === "stations" && (
                     <>
