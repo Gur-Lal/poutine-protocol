@@ -186,7 +186,7 @@ export class BikeReservationService {
         }
     }
 
-    private async freeUpDock(stationId: string) {
+    public async freeUpDock(stationId: string) {
         const stationRef = this.db.collection("stations").doc(stationId);
         await this.db.runTransaction(async (tx) => {
             const stationDoc = await tx.get(stationRef);
