@@ -4,6 +4,8 @@ import { StripePaymentService } from "@/domain/services/stripePaymentService";
 import { BillingService } from "@/domain/services/billingService";
 import { PricingStrategy, RegularPricing, EBikePricing, MonthlyPricing } from '@/domain/models/Pricing';
 import { Trip } from '@/domain/models/Trip';
+import { Tier } from "@/domain/models/UserData";
+import { getTierPerks } from "@/domain/services/tierService";
 
 const paymentService = new StripePaymentService();
 const billingService = new BillingService(adminDb);
@@ -58,7 +60,9 @@ export async function POST(req: Request) {
     const pricingPlan = userData.pricingPlan || "regular";
     const role = userData?.role || "rider";
     const activeRole = userData?.activeRole || (role === "dual" ? "rider" : role);
-    const tierDiscount = userData?.tierDiscount || 0;
+    const userTier = (userData?.tier) as Tier;
+    const perks = getTierPerks(userTier);
+    const tierDiscount = perks.discount;
 
     // Fetch bike to determine if it's an e-bike
     const bikeDoc = await adminDb.collection("bikes").doc(tripData.bikeId).get();

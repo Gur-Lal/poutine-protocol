@@ -47,3 +47,16 @@ export async function updateRiderTier(email: string): Promise<Tier> {
 
     return newTier;
 }
+
+export function getTierPerks(tier:Tier){
+    switch(tier){
+        case "gold":
+            return {discount:0.15, extraReservationMinutes: 5};
+        case "silver":
+            return {discount:0.10, extraReservationMinutes:2};
+        case "bronze":
+            return {discount: 0.05, extraReservationMinutes: 0};
+        default:
+            return { discount: 0, extraReservationMinutes: 0};
+    }
+}
