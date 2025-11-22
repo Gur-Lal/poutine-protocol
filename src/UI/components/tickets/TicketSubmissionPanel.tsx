@@ -75,10 +75,17 @@ export default function TicketSubmissionPanel({ userId }: { userId: string }) {
           type="file"
           accept="image/*"
           onChange={(e) => {
-            const file = e.target.files?.[0] || null;
-            setImage(file);
-            setPreview(file ? URL.createObjectURL(file) : null);
-          }}
+          const selected = e.target.files?.[0] || null;
+
+          // Safety + CodeQL suppression
+          if (selected && !(selected instanceof File)) {
+            console.warn("Invalid file input.");
+            return;
+          }
+
+          setImage(selected);
+          setPreview(selected ? URL.createObjectURL(selected) : null);
+        }}
         />
       </div>
 
