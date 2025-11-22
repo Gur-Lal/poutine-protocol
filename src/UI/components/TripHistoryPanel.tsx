@@ -367,6 +367,20 @@ export default function TripHistoryPanel({ email, role, activeRole }: TripHistor
                     <span>Per Minute:</span>
                     <span>${selectedTrip.priceBreakdown.perMinutePrice.toFixed(2)}</span>
                   </div>
+
+                  {selectedTrip.priceBreakdown.tierDiscount && (
+                    <div className="detailRow">
+                      <span>Tier Discount:</span>
+                      <span>- {selectedTrip.priceBreakdown.tierDiscount * 100}%</span>
+                    </div>
+                  )}
+                  
+                  {selectedTrip.priceBreakdown.dualRoleDiscount !== 0 && (
+                    <div className="detailRow">
+                      <span>Dual Role Discount:</span>
+                      <span>- {selectedTrip.priceBreakdown.dualRoleDiscount * 100}%</span>
+                    </div>
+                  )}
                   {selectedTrip.priceBreakdown.eBikeSurcharge > 0 && (
                     <div className="detailRow">
                       <span>E-Bike Surcharge:</span>
