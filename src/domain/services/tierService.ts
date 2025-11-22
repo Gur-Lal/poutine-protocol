@@ -1,5 +1,6 @@
 import { RiderStats } from "@/domain/models/RiderStats";
-
+import { adminDb } from "@/data/firebaseAdmin";
+import { getRiderStats } from "./riderStatsService";
 import { Tier } from "../models/UserData";
 
 function qualifiesBronze( r: RiderStats): boolean {
@@ -19,4 +20,30 @@ export function assignTier(r:RiderStats): Tier {
     if(qualifiesGold(r)) return "gold";
     if(qualifiesSilver(r)) return "silver";
     return "bronze";
+}
+
+export async function updateRiderTier(email: string): Promise<Tier> {
+    const userQuery = await adminDb
+    .collection("users")
+    .where("email", "==", email)
+    .limit(1)
+    .get();
+
+    if(userQuery.empty){
+        throw new Error(`User with email ${email} not found`);
+    }
+
+    const userDoc = userQuery.docs[0];
+    const userRef = userDoc.ref;
+
+    const stats = await getRiderStats(email);
+    const newTier = assignTier(stats);
+
+    const currentTier = (userDoc.data().tier ?? "none") as Tier;
+
+    if(currentTier !== newTier){
+        await userRef.update({tier: newTier});
+    }
+
+    return newTier;
 }

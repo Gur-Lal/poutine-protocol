@@ -18,6 +18,7 @@ import axios from "axios";
 import { clientObserver, ClientSubscriber, ClientUpdateData } from "@/lib/client-observer";
 import "./dashboard.css";
 import RoleToggle from "@/UI/components/RoleToggle";
+import { Tier } from "@/domain/models/UserData";
 
 declare global {
     interface Window {
@@ -41,7 +42,8 @@ export default function DashboardPage() {
     const [showPaymentModal, setShowPaymentModal] = useState(false);
     const [paymentTripId, setPaymentTripId] = useState<string>("");
     const [onBikeTrip, setOnBikeTrip] = useState(false);
-
+    const [tier, setTier] = useState<Tier>("none");
+    
     // Admin states
     const [userRole, setUserRole] = useState<"rider" | "operator" | "admin" | "dual">("rider");
     const [activeRole, setActiveRole] = useState<"operator" | "rider">("rider");
@@ -116,6 +118,14 @@ export default function DashboardPage() {
             if (user) {
                 setEmail(user.email || "");
                 try {
+
+                    if(user.email){
+                        const tierResponse = await axios.post("/api/updateTier/", {
+                            email: user.email
+                        });
+                        console.log("Tier:", tierResponse.data.tier);
+                        setTier(tierResponse.data.tier);
+                    }
                     // Fetch user role
                     const roleResponse = await axios.get(`/api/activeRole?userId=${user.uid}`);
                     if (roleResponse.data.ok) {
@@ -534,6 +544,8 @@ export default function DashboardPage() {
             });
 
             if (response.data.ok) {
+                const tierResponse = await axios.post("/api/updateTier", { email });
+                setTier(tierResponse.data.tier);
                 await createNotification(
                     email,
                     `Bike returned`,
