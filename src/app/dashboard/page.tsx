@@ -11,6 +11,8 @@ import { Reservation } from "@/domain/models/Reservation";
 import { createNotification } from "@/domain/services/notificationService";
 import TripHistoryPanel from "@/UI/components/TripHistoryPanel";
 import NotificationButton from "@/UI/components/NotificationButton";
+import AdminTicketList from "@/UI/components/tickets/AdminTicketList";
+import TicketSubmissionPanel from "@/UI/components/tickets/TicketSubmissionPanel";
 import PaymentModal from "@/UI/components/PaymentModal";
 import BillingHistoryPanel from "@/UI/components/BillingHistoryPanel";
 import PricingPanel from "@/UI/components/PricingPanel";
@@ -21,6 +23,7 @@ import RoleToggle from "@/UI/components/RoleToggle";
 import AccountButton from "@/UI/components/AccountButton";
 import { signOut } from "firebase/auth";
 import { User } from "firebase/auth";
+
 
 declare global {
     interface Window {
@@ -55,7 +58,7 @@ export default function DashboardPage() {
     const [destinationStationId, setDestinationStationId] = useState("");
 
     // Tab state 
-    const [currentTab, setCurrentTab] = useState<"stations" | "trips" | "billing" | "pricing">("stations");
+    const [currentTab, setCurrentTab] = useState<"stations" | "trips" | "billing" | "pricing" | "tickets">("stations");
 
     // Maps
     const mapRef = useRef<HTMLDivElement>(null);
@@ -711,6 +714,12 @@ export default function DashboardPage() {
                     >
                         Trip History
                     </div>
+                    <div
+                        className={`navOption ${currentTab === "tickets" ? "active" : ""}`}
+                        onClick={() => setCurrentTab("tickets")}
+                        >
+                        Tickets
+                    </div>
                     {userRole !== "admin" && (
                         <>
                             <div
@@ -816,6 +825,11 @@ export default function DashboardPage() {
                     <PricingPanel email={email} />
                 )}
 
+                {currentTab === "tickets" && (
+                    userRole === "admin" || activeRole === "operator"
+                        ? <AdminTicketList />
+                        : <TicketSubmissionPanel userId={user?.uid || ""} />
+                )}
             </div>
 
             {
