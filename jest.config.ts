@@ -13,7 +13,7 @@ const config: Config = {
   // bail: 0,
 
   // The directory where Jest should store its cached dependency information
-  // cacheDirectory: "C:\\Users\\darcy\\AppData\\Local\\Temp\\jest",
+  // cacheDirectory: "",
 
   // Automatically clear mock calls, instances, contexts and results before every test
   clearMocks: true,
@@ -23,20 +23,21 @@ const config: Config = {
 
   // An array of glob patterns indicating a set of files for which coverage information should be collected
   collectCoverageFrom: [
-      '**/*.{ts,tsx,js,jsx}',
-      '!**/*.d.ts',
-      '!**/node_modules/**',
-      '!**/.next/**',
-      '!**/coverage/**',
-      '!**config.**',
-      '!**/api/**',
-      '!**/lib/**',
-      '!**/data/**',
-      "!src/**/TripData.ts",
-      "!src/**/UserData.ts",
-      "!src/**/PriceBreakdown.ts",
-      "!src/**/stripePaymentService.ts",
-    ],
+    '**/*.{ts,tsx,js,jsx}',
+    '!**/*.d.ts',
+    '!**/node_modules/**',
+    '!**/.next/**',
+    '!**/coverage/**',
+    '!**config.**',
+    '!**/api/**',
+    '!**/lib/**',
+    '!**/data/**',
+    "!src/**/TripData.ts",
+    "!src/**/UserData.ts",
+    "!src/**/PriceBreakdown.ts",
+    "!src/**/stripePaymentService.ts",
+    "!**__tests__/**",
+  ],
 
   // The directory where Jest should output its coverage files
   // coverageDirectory: undefined,
@@ -168,10 +169,11 @@ const config: Config = {
   // testLocationInResults: false,
 
   // The glob patterns Jest uses to detect test files
-  // testMatch: [
-  //   "**/__tests__/**/*.?([mc])[jt]s?(x)",
-  //   "**/?(*.)+(spec|test).?([mc])[jt]s?(x)"
-  // ],
+  testMatch: [
+    "**/__tests__/**/*.test.(ts|tsx|js)",
+    "!**/__tests__/integration/**",
+    "!**/setupIntegration.(ts|js)"
+  ],
 
   // An array of regexp pattern strings that are matched against all test paths, matched tests are skipped
   // testPathIgnorePatterns: [
