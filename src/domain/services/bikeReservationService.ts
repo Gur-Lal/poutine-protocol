@@ -2,7 +2,7 @@ import { Firestore, Transaction, Timestamp, UpdateData } from "firebase-admin/fi
 import { Reservation } from "../models/Reservation";
 import { Bike, BikeStatus } from "../models/Bike";
 import { DockStation, StationStatus } from "../models/DockStation";
-import { createNotification } from "@/domain/services/notificationService";
+import { createServerNotification } from "@/domain/services/serverNotificationService";
 import { createAdminNotification } from "@/domain/services/adminService";
 import { UserData } from "../models/UserData";
 import { getTierPerks } from "./tierService";
@@ -180,7 +180,7 @@ export class BikeReservationService {
                     status: "available"
                 });
             });
-            createNotification(email, "Reservation expired", "The bike you had reserved is now available.");
+            await createServerNotification(email, "Reservation expired", "The bike you had reserved is now available.");
             return {
                 ok: false,
                 message: "Reservation expired, bike is now available.",

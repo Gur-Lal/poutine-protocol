@@ -13,6 +13,9 @@ export async function POST(req: Request) {
 
         const result = await service.unlockBike({ email, bikeId });
 
+        if(!result.ok){
+            throw new Error(result.message);
+        }
         const trip = await tripService.startTrip(email, bikeId, startStationId, startStationName, isEBike);
 
         bmsCore.publishReservation(email, bikeId, 'UNLOCKED');

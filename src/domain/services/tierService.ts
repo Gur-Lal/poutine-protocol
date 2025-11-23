@@ -2,6 +2,7 @@ import { RiderStats } from "@/domain/models/RiderStats";
 import { adminDb } from "@/data/firebaseAdmin";
 import { getRiderStats } from "./riderStatsService";
 import { Tier } from "../models/UserData";
+import { createServerNotification } from "./serverNotificationService";
 
 function qualifiesBronze( r: RiderStats): boolean {
     return (r.missedReservationsLastYear === 0 && r.allBikesReturned === true && r.tripsLastYear >= 10);
@@ -43,6 +44,7 @@ export async function updateRiderTier(email: string): Promise<Tier> {
 
     if(currentTier !== newTier){
         await userRef.update({tier: newTier});
+        await createServerNotification(email, "Tier Update!", `You have been assigned a new tier: ${newTier}`);
     }
 
     return newTier;
