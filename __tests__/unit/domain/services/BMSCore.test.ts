@@ -1,4 +1,4 @@
-import { BMSCore, Subscriber } from "../../../src/domain/services/BMSCore";
+import { BMSCore, Subscriber } from "../../../../src/domain/services/BMSCore";
 import { Firestore } from "firebase-admin/firestore";
 
 describe("BMSCore", () => {

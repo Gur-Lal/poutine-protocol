@@ -1,5 +1,5 @@
-import { PricingPlan, PricingCatalog, RegularPricing, EBikePricing, MonthlyPricing } from '../../../src/domain/models/Pricing';
-import { Trip } from '../../../src/domain/models/Trip';
+import { PricingPlan, PricingCatalog, RegularPricing, EBikePricing, MonthlyPricing } from '../../../../src/domain/models/Pricing';
+import { Trip } from '../../../../src/domain/models/Trip';
 
 describe('PricingPlan', () => {
     it('should create a pricing plan with a name', () => {

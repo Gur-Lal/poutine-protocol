@@ -1,5 +1,5 @@
-import { Bike } from "../../../src/domain/models/Bike";
-import { Dock } from "../../../src/domain/models/Dock";
+import { Bike } from "../../../../src/domain/models/Bike";
+import { Dock } from "../../../../src/domain/models/Dock";
 
 describe("Dock", () => {
     test("should occupy a free dock with a bike", () => {

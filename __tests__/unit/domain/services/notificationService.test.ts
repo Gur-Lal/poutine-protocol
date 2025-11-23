@@ -1,4 +1,4 @@
-import { createNotification } from "../../../src/domain/services/notificationService";
+import { createNotification } from "../../../../src/domain/services/notificationService";
 import { collection, addDoc } from "firebase/firestore";
 
 jest.mock("firebase/firestore", () => ({

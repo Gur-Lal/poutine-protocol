@@ -1,4 +1,4 @@
-import { Billing } from "../../../src/domain/models/Billing";
+import { Billing } from "../../../../src/domain/models/Billing";
 
 describe("Billing", () => {
     test("should return true when billing status is paid", () => {

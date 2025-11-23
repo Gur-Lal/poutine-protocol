@@ -1,4 +1,4 @@
-import { TripService } from "../../../src/domain/services/tripService";
+import { TripService } from "../../../../src/domain/services/tripService";
 import { Firestore } from "firebase-admin/firestore";
 
 jest.mock("firebase-admin/firestore");

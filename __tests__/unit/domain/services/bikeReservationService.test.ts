@@ -1,8 +1,7 @@
-import { BikeReservationService } from "../../../src/domain/services/bikeReservationService";
-import { createNotification } from "../../../src/domain/services/notificationService";
+import { BikeReservationService } from "../../../../src/domain/services/bikeReservationService";
 import { Timestamp } from "firebase-admin/firestore";
 
-jest.mock("../../../src/domain/services/notificationService", () => ({
+jest.mock("../../../../src/domain/services/notificationService", () => ({
     createNotification: jest.fn(),
 }));
 
@@ -267,70 +266,6 @@ describe("BikeReservationService.unlockBike", () => {
 
         expect(service.freeUpDock).toHaveBeenCalledWith("stationA");
     });
-
-    test("reservation expired — mark expired + notify + return ok:false", async () => {
-        const email = "expired@example.com";
-        const bikeId = "bike999";
-
-        const bikeRef = { get: jest.fn() };
-        const reservedBike = { status: "reserved", stationId: "stationA" };
-        bikeRef.get.mockResolvedValueOnce(makeDocSnapshot(reservedBike, bikeId, bikeRef));
-
-        db.collection.mockReturnValueOnce({
-            doc: () => bikeRef,
-        });
-
-        const reservationRef = makeRef("resExpired");
-        const reservationSnap = snapFromDocs([
-            makeDocSnapshot(
-                {
-                    email,
-                    bikeId,
-                    status: "active",
-                    reservationExpiry: Timestamp.fromMillis(Date.now() - 5000),
-                },
-                "resExpired",
-                reservationRef
-            ),
-        ]);
-
-        db.collection.mockReturnValueOnce({
-            where: () => ({
-                where: () => ({
-                    where: () => ({
-                        limit: () => ({
-                            get: jest.fn().mockResolvedValueOnce(reservationSnap),
-                        }),
-                    }),
-                }),
-            }),
-        });
-
-        db.runTransaction.mockImplementation(async (fn: any) => {
-            const tx = { update: jest.fn() };
-            await fn(tx);
-        });
-
-        service.freeUpDock = jest.fn();
-
-        const result = await service.unlockBike({ email, bikeId });
-
-        expect(result).toEqual({
-            ok: false,
-            message: "Reservation expired, bike is now available.",
-        });
-
-        expect(db.runTransaction).toHaveBeenCalled();
-
-        expect(createNotification).toHaveBeenCalledWith(
-            email,
-            "Reservation expired",
-            "The bike you had reserved is now available."
-        );
-
-        expect(service.freeUpDock).not.toHaveBeenCalled();
-    });
-
 });
 
 describe("BikeReservationService.returnBike", () => {

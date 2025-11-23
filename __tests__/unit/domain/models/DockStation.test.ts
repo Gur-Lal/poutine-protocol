@@ -1,6 +1,6 @@
-import { DockStation, Point } from "../../../src/domain/models/DockStation";
-import { Bike } from "../../../src/domain/models/Bike";
-import { Dock } from "../../../src/domain/models/Dock";
+import { DockStation, Point } from "../../../../src/domain/models/DockStation";
+import { Bike } from "../../../../src/domain/models/Bike";
+import { Dock } from "../../../../src/domain/models/Dock";
 
 describe("DockStation", () => {
     let mockDocks: Dock[];

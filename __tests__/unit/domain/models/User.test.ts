@@ -1,5 +1,5 @@
-import { User, Operator, Rider } from '../../../src/domain/models/User';
-import { PricingPlan } from '../../../src/domain/models/Pricing';
+import { User, Operator, Rider } from '../../../../src/domain/models/User';
+import { PricingPlan } from '../../../../src/domain/models/Pricing';
 
 describe('User', () => {
     it('should create a user with username, email, and password', () => {

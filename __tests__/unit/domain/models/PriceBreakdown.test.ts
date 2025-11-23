@@ -1,4 +1,4 @@
-import { PriceBreakdown } from '../../../src/domain/models/PriceBreakdown';
+import { PriceBreakdown } from '../../../../src/domain/models/PriceBreakdown';
 
 describe('PriceBreakdown', () => {
   it('should create a complete price breakdown with all fields', () => {

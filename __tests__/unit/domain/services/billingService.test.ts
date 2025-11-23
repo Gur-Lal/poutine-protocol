@@ -1,6 +1,6 @@
 import { Timestamp } from "firebase-admin/firestore";
-import { BillingService } from "../../../src/domain/services/billingService";
-import { Billing, BillingStatus } from "../../../src/domain/models/Billing";
+import { BillingService } from "../../../../src/domain/services/billingService";
+import { Billing, BillingStatus } from "../../../../src/domain/models/Billing";
 
 const mockSet = jest.fn();
 const mockGet = jest.fn();
