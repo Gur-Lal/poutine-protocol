@@ -5,6 +5,7 @@ import { User } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/data/firebase";
 import { User as UserIcon, LogOut, Mail, MapPin, Shield } from "lucide-react";
+import { IoIosRibbon } from "react-icons/io";
 import "./AccountButton.css";
 
 interface AccountButtonProps {
@@ -73,6 +74,10 @@ export default function AccountButton({ user, onLogout }: AccountButtonProps) {
                             <div className={`roleBadge ${userData?.role}`}>
                                 <Shield size={12} />
                                 {userData?.role === "admin" ? "ADMIN" : "RIDER"}
+                            </div>
+                            <div className={`tierBadge ${userData?.tier}`}>
+                                <IoIosRibbon />
+                                {userData?.tier?.toUpperCase() || "NONE"}
                             </div>
                         </div>
                     </div>
