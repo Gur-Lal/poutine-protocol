@@ -85,6 +85,38 @@
     border: 1px solid rgba(34, 197, 94, 0.3);
 }
 
+.tierBadge{
+    display: inline-flex;
+    margin-left:5px;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: bold;
+    background-color: rgba(107, 114, 128, 0.15);
+    color: #d1d5db;
+    border: 1px solid rgba(107, 114, 128, 0.25);
+}
+
+.tierBadge.gold{
+    background-color:rgba(250, 204, 21, 0.85);
+    color: #854d0e;
+    border: 1px solid rgba(202, 138, 4, 0.9);
+}
+
+.tierBadge.silver{
+    background-color: rgba(229, 231, 235, 0.85);
+    color: #374151;
+    border: 1px solid rgba(156, 163, 175, 0.9);
+}
+
+.tierBadge.bronze{
+    background-color: rgba(168, 85, 33, 0.2);
+    color: #f59e0b;
+    border: 1px solid rgba(168, 85, 33, 0.3);
+}
+
 .accountDivider {
     height: 1px;
     background-color: rgba(255, 255, 255, 0.1);
