@@ -1,4 +1,4 @@
-import { Bike } from "../../../src/domain/models/Bike";
+import { Bike } from "../../../../src/domain/models/Bike";
 
 describe("Bike", () => {
     test("canBeReserved returns true when status is available", () => {

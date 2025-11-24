@@ -1,4 +1,4 @@
-import { Reservation } from "../../../src/domain/models/Reservation";
+import { Reservation } from "../../../../src/domain/models/Reservation";
 
 describe("Reservation", () => {
     test("should return true when reservation has expired", () => {

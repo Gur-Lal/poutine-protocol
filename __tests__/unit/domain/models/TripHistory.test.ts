@@ -1,7 +1,7 @@
-import { Trip, TripHistory } from "../../../src/domain/models/Trip";
-import { DockStation } from "../../../src/domain/models/DockStation";
-import { Bike } from "../../../src/domain/models/Bike";
-import { Dock } from "../../../src/domain/models/Dock";
+import { Trip, TripHistory } from "../../../../src/domain/models/Trip";
+import { DockStation } from "../../../../src/domain/models/DockStation";
+import { Bike } from "../../../../src/domain/models/Bike";
+import { Dock } from "../../../../src/domain/models/Dock";
 
 describe("TripHistory", () => {
     const mockPoint = { latitude: 40.7128, longitude: -74.006 };
