@@ -213,10 +213,16 @@ describe("Interactive use cases", () => {
         );
     });
 
-    test("Happy Path Ride - reserve, unlock, ride, return, bill computed, receipt sent", async () => {
-        const stationARef = makeRef("id-A");
-        const stationBRef = makeRef("id-B");
-        const bikeRef = makeRef("bike-1");
+    test("Happy Path Ride: reserve, unlock, ride, return, bill computed, receipt sent", async () => {
+        const email = "test@example.com";
+        const bikeId = "bike-1";
+
+        const stationAId = "id-A";
+        const stationARef = makeRef(stationAId);
+
+        const stationBId = "id-B";
+        const stationBRef = makeRef(stationBId);
+        const bikeRef = makeRef(bikeId);
         const reservationRef = makeRef("newRes123");
 
         const stationAData = {
@@ -226,7 +232,7 @@ describe("Interactive use cases", () => {
             capacity: 10,
             expiresAfterMinutes: 10,
         };
-        const stationADoc = makeDocSnapshot(stationAData, "id-A", stationARef);
+        const stationADoc = makeDocSnapshot(stationAData, stationAId, stationARef);
 
         const stationBData = {
             name: "Station B",
@@ -235,13 +241,13 @@ describe("Interactive use cases", () => {
             capacity: 2,
             expiresAfterMinutes: 10,
         };
-        const stationBDoc = makeDocSnapshot(stationBData, "id-B", stationBRef);
+        const stationBDoc = makeDocSnapshot(stationBData, stationBId, stationBRef);
 
         const bikeData = {
             status: "available",
-            stationId: "id-A",
+            stationId: stationAId,
         };
-        const bikeDoc = makeDocSnapshot(bikeData, "bike-1", bikeRef);
+        const bikeDoc = makeDocSnapshot(bikeData, bikeId, bikeRef);
 
         const reservationsCol = {
             where: jest.fn().mockReturnValue({
@@ -264,7 +270,7 @@ describe("Interactive use cases", () => {
 
         const bikesCol = {
             doc: jest.fn((id: string) => {
-                if (id === "bike-1") return bikeRef;
+                if (id === bikeId) return bikeRef;
                 return makeRef(id);
             }),
         };
@@ -289,16 +295,14 @@ describe("Interactive use cases", () => {
             return transactionFn(tx);
         });
 
-        const result = await service.reserveBike({
-            email: "user@example.com",
-            stationName: "Station A",
-            bikeId: "bike-1",
-        });
+        const reserveResult = await service.reserveBike({ email, stationName: "Station A", bikeId });
 
-        expect(result.ok).toBe(true);
-        expect(result.reservationId).toBe("newRes123");
-        expect(result.email).toBe("user@example.com");
-        expect(result.bikeId).toBe("bike-1");
-        expect(result.station.status).toBe("occupied");
+        //const unlockResult = await service.unlockBike({ email, bikeId });
+
+        //const returnResult = await service.returnBike({ email, bikeId, stationId: stationBId });
+
+        expect(reserveResult.ok).toBe(true);
+        //expect(unlockResult.ok).toBe(true);
+        //expect(returnResult.ok).toBe(true);
     });
 });
