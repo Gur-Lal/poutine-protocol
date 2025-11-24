@@ -11,6 +11,8 @@ import { Reservation } from "@/domain/models/Reservation";
 import { createNotification } from "@/domain/services/notificationService";
 import TripHistoryPanel from "@/UI/components/TripHistoryPanel";
 import NotificationButton from "@/UI/components/NotificationButton";
+import AdminTicketList from "@/UI/components/tickets/AdminTicketList";
+import TicketSubmissionPanel from "@/UI/components/tickets/TicketSubmissionPanel";
 import PaymentModal from "@/UI/components/PaymentModal";
 import BillingHistoryPanel from "@/UI/components/BillingHistoryPanel";
 import PricingPanel from "@/UI/components/PricingPanel";
@@ -19,6 +21,10 @@ import { clientObserver, ClientSubscriber, ClientUpdateData } from "@/lib/client
 import "./dashboard.css";
 import RoleToggle from "@/UI/components/RoleToggle";
 import { Tier } from "@/domain/models/UserData";
+import AccountButton from "@/UI/components/AccountButton";
+import { signOut } from "firebase/auth";
+import { User } from "firebase/auth";
+
 
 declare global {
     interface Window {
@@ -44,6 +50,10 @@ export default function DashboardPage() {
     const [onBikeTrip, setOnBikeTrip] = useState(false);
     const [tier, setTier] = useState<Tier>("none");
     
+
+    const [user, setUser] = useState<User | null>(null);
+    const subscriberIdRef = useRef<string>("");
+
     // Admin states
     const [userRole, setUserRole] = useState<"rider" | "operator" | "admin" | "dual">("rider");
     const [activeRole, setActiveRole] = useState<"operator" | "rider">("rider");
@@ -51,7 +61,7 @@ export default function DashboardPage() {
     const [destinationStationId, setDestinationStationId] = useState("");
 
     // Tab state 
-    const [currentTab, setCurrentTab] = useState<"stations" | "trips" | "billing" | "pricing">("stations");
+    const [currentTab, setCurrentTab] = useState<"stations" | "trips" | "billing" | "pricing" | "tickets">("stations");
 
     // Maps
     const mapRef = useRef<HTMLDivElement>(null);
@@ -83,6 +93,14 @@ export default function DashboardPage() {
         fetchBikesByStation(station.id);
     }, []);
 
+    const handleLogout = async () => {
+        if (subscriberIdRef.current) {
+            clientObserver.unsubscribe(subscriberIdRef.current);
+        }
+
+        await signOut(auth);
+        router.push("/");
+    };
 
     useEffect(() => {
         // Create subscriber to receive updates from BMSCore
@@ -112,11 +130,13 @@ export default function DashboardPage() {
 
         // Subscribe with unique ID
         const subscriberId = `dashboard-${Date.now()}`;
+        subscriberIdRef.current = subscriberId;
         clientObserver.subscribe(subscriberId, dashboardSubscriber);
 
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
             if (user) {
                 setEmail(user.email || "");
+                setUser(user);
                 try {
 
                     if(user.email){
@@ -139,6 +159,10 @@ export default function DashboardPage() {
                     console.log("Error fetching stations: ", error);
                 }
             } else {
+                setUser(null);
+                setEmail("");
+                setStations([]);
+                setReservation(undefined);
                 router.push("/login");
             }
             setLoading(false);
@@ -688,6 +712,8 @@ export default function DashboardPage() {
     return (
         <main className="dashboardContainer">
             <div className="header">
+                <NotificationButton />
+
                 <div className="navBar">
                     <div
                         className={`navOption ${currentTab === "stations" ? "active" : ""}`}
@@ -700,6 +726,12 @@ export default function DashboardPage() {
                         onClick={() => setCurrentTab("trips")}
                     >
                         Trip History
+                    </div>
+                    <div
+                        className={`navOption ${currentTab === "tickets" ? "active" : ""}`}
+                        onClick={() => setCurrentTab("tickets")}
+                        >
+                        Tickets
                     </div>
                     {userRole !== "admin" && (
                         <>
@@ -730,8 +762,11 @@ export default function DashboardPage() {
                     )}
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-
+                <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '15px'
+                }}>
                     {auth.currentUser && userRole === "dual" && (
                         <RoleToggle
                             user={auth.currentUser}
@@ -739,14 +774,16 @@ export default function DashboardPage() {
                         />
                     )}
 
-                    <NotificationButton />
                     {isOperatorMode() && (
                         <div className="adminBadge">
                             {userRole === "admin" ? "ADMIN" : "OPERATOR"}
                         </div>
                     )}
+
+                    {user && <AccountButton user={user} onLogout={handleLogout} />}
                 </div>
             </div>
+
             <div className="dashboardArea">
                 {currentTab === "stations" && (
                     <>
@@ -801,6 +838,11 @@ export default function DashboardPage() {
                     <PricingPanel email={email} />
                 )}
 
+                {currentTab === "tickets" && (
+                    userRole === "admin" || activeRole === "operator"
+                        ? <AdminTicketList />
+                        : <TicketSubmissionPanel userId={user?.uid || ""} />
+                )}
             </div>
 
             {

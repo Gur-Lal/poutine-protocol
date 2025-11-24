@@ -387,6 +387,31 @@ export default function TripHistoryPanel({ email, role, activeRole }: TripHistor
                       <span>${selectedTrip.priceBreakdown.eBikeSurcharge.toFixed(2)}</span>
                     </div>
                   )}
+                  {selectedTrip.priceBreakdown.tierDiscount && selectedTrip.priceBreakdown.tierDiscount > 0 && (
+                    <div className="detailRow" style={{ color: "#4ade80" }}>
+                      <span>Tier Discount ({(selectedTrip.priceBreakdown.tierDiscount * 100).toFixed(0)}%):</span>
+                      <span>Applied</span>
+                    </div>
+                  )}
+                  {selectedTrip.priceBreakdown.dualRoleDiscount && selectedTrip.priceBreakdown.dualRoleDiscount > 0 && (
+                    <div className="detailRow" style={{ color: "#4ade80" }}>
+                      <span>Dual-Role Discount ({(selectedTrip.priceBreakdown.dualRoleDiscount * 100).toFixed(0)}%):</span>
+                      <span>Applied</span>
+                    </div>
+                  )}
+                  {selectedTrip.priceBreakdown.flexBalanceUsed && selectedTrip.priceBreakdown.flexBalanceUsed > 0 && (
+                    <div className="detailRow" style={{ color: "#4ade80", fontWeight: "bold" }}>
+                      <span>Flex Balance Applied:</span>
+                      <span>-${selectedTrip.priceBreakdown.flexBalanceUsed.toFixed(2)}</span>
+                    </div>
+                  )}
+                  {selectedTrip.priceBreakdown.flexBalanceEarned && selectedTrip.priceBreakdown.flexBalanceEarned > 0 && (
+                    <div className="detailRow" style={{ color: "#4ade80", fontWeight: "bold" }}>
+                      <span>Flex Balance Earned:</span>
+                      <span>+${selectedTrip.priceBreakdown.flexBalanceEarned.toFixed(2)}</span>
+                    </div>
+                  )}
+
                   <div className="detailRow totalRow">
                     <span><strong>Total:</strong></span>
                     <span><strong>${selectedTrip.priceBreakdown.total.toFixed(2)}</strong></span>

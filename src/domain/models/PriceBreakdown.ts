@@ -6,4 +6,8 @@ export interface PriceBreakdown {
   tierDiscount: number;
   dualRoleDiscount: number;
   total: number;
+  dualRoleDiscount?: number;
+  tierDiscount?: number;
+  flexBalanceUsed?: number;
+  flexBalanceEarned?: number;
 }
