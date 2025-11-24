@@ -2,8 +2,10 @@ import { Firestore, Transaction, Timestamp, UpdateData } from "firebase-admin/fi
 import { Reservation } from "../models/Reservation";
 import { Bike, BikeStatus } from "../models/Bike";
 import { DockStation, StationStatus } from "../models/DockStation";
-import { createNotification } from "@/domain/services/notificationService";
+import { createServerNotification } from "@/domain/services/serverNotificationService";
 import { createAdminNotification } from "@/domain/services/adminService";
+import { UserData } from "../models/UserData";
+import { getTierPerks } from "./tierService";
 
 export class BikeReservationService {
     constructor(private db: Firestore) { }
@@ -35,12 +37,24 @@ export class BikeReservationService {
 
         const stationRef = stationSnap.docs[0].ref;
 
+        const userSnap = await this.db
+        .collection("users")
+        .where("email", "==", email)
+        .limit(1)
+        .get();
+
+        if (userSnap.empty) throw new Error("User not found.");
+        const userRef = userSnap.docs[0].ref;
+
         const result = await this.db.runTransaction(async (tx: Transaction) => {
             const stationDoc = await tx.get(stationRef);
-
+            const userDoc = await tx.get(userRef);
             if (!stationDoc.exists) throw new Error("Station not found");
+            if(!userDoc.exists) throw new Error("User not found");
 
-            const station = stationDoc.data() as unknown as DockStation;
+            const station = stationDoc.data() as DockStation;
+            const user = userDoc.data() as UserData;
+            
             if (station.status === "out_of_service") {
                 throw new Error("Station is out of service");
             }
@@ -67,8 +81,12 @@ export class BikeReservationService {
             } as UpdateData<Bike>);
 
             const startTs = Timestamp.now();
-            const expiryMs = (station.expiresAfterMinutes ?? 10) * 60 * 1000;
-            const expiryTs = Timestamp.fromMillis(startTs.toMillis() + expiryMs);
+            const baseMinutes = station.expiresAfterMinutes ?? 10;
+            const perks = getTierPerks(user.tier);
+            const extraMinutes = perks.extraReservationMinutes;
+            const totalMinutes = baseMinutes + extraMinutes;
+        
+            const expiryTs = Timestamp.fromMillis(startTs.toMillis() + totalMinutes * 60 * 1000);
 
             const reservation = new Reservation(email, bikeId, startTs.toDate(), expiryTs.toDate(), "active");
 
@@ -162,7 +180,7 @@ export class BikeReservationService {
                     status: "available"
                 });
             });
-            createNotification(email, "Reservation expired", "The bike you had reserved is now available.");
+            await createServerNotification(email, "Reservation expired", "The bike you had reserved is now available.");
             return {
                 ok: false,
                 message: "Reservation expired, bike is now available.",
