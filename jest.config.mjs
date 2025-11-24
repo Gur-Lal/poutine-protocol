@@ -24,6 +24,7 @@ const customJestConfig = {
     "!src/**/stripePaymentService.ts",
     "!src/**/layout.tsx",
     "!**__tests__/**",
+    "!**/UI/**",
   ],
 
   coverageReporters: ["json", "lcov", "text", "html"],
