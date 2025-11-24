@@ -249,6 +249,13 @@ describe("Interactive use cases", () => {
         };
         const bikeDoc = makeDocSnapshot(bikeData, bikeId, bikeRef);
 
+        // Bike data after reservation (for unlock phase)
+        const reservedBikeData = {
+            status: "reserved",
+            stationId: stationAId,
+        };
+        const reservedBikeDoc = makeDocSnapshot(reservedBikeData, bikeId, bikeRef);
+
         const reservationsCol = {
             where: jest.fn().mockReturnValue({
                 where: jest.fn().mockReturnValue({
@@ -296,13 +303,49 @@ describe("Interactive use cases", () => {
         });
 
         const reserveResult = await service.reserveBike({ email, stationName: "Station A", bikeId });
+        expect(reserveResult.ok).toBe(true);
 
-        //const unlockResult = await service.unlockBike({ email, bikeId });
+        // === UNLOCK PHASE ===
+        bikeRef.get = jest.fn().mockResolvedValueOnce(reservedBikeDoc);
+
+        const activeReservationSnap = snapFromDocs([
+            makeDocSnapshot(
+                {
+                    email,
+                    bikeId,
+                    status: "active",
+                    reservationExpiry: Timestamp.fromMillis(Date.now() + 10000),
+                },
+                "newRes123",
+                reservationRef
+            ),
+        ]);
+
+        reservationsCol.where = jest.fn().mockReturnValue({
+            where: jest.fn().mockReturnValue({
+                where: jest.fn().mockReturnValue({
+                    limit: jest.fn().mockReturnValue({
+                        get: jest.fn().mockResolvedValueOnce(activeReservationSnap),
+                    }),
+                }),
+            }),
+        });
+
+        // Mock transaction for unlock
+        db.runTransaction.mockImplementationOnce(async (transactionFn: any) => {
+            const tx = { update: jest.fn() };
+            await transactionFn(tx);
+        });
+
+        // Mock freeUpDock
+        service.freeUpDock = jest.fn().mockResolvedValue(undefined);
+
+        const unlockResult = await service.unlockBike({ email, bikeId });
+        expect(unlockResult.ok).toBe(true);
+        expect(service.freeUpDock).toHaveBeenCalledWith(stationAId);
 
         //const returnResult = await service.returnBike({ email, bikeId, stationId: stationBId });
 
-        expect(reserveResult.ok).toBe(true);
-        //expect(unlockResult.ok).toBe(true);
         //expect(returnResult.ok).toBe(true);
     });
 });
