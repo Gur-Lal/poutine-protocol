@@ -224,6 +224,7 @@ describe("Interactive use cases", () => {
         const stationBRef = makeRef(stationBId);
         const bikeRef = makeRef(bikeId);
         const reservationRef = makeRef("newRes123");
+        const dockRef = makeRef("dock1");
 
         const stationAData = {
             name: "Station A",
@@ -249,12 +250,17 @@ describe("Interactive use cases", () => {
         };
         const bikeDoc = makeDocSnapshot(bikeData, bikeId, bikeRef);
 
-        // Bike data after reservation (for unlock phase)
         const reservedBikeData = {
             status: "reserved",
             stationId: stationAId,
         };
         const reservedBikeDoc = makeDocSnapshot(reservedBikeData, bikeId, bikeRef);
+
+        const onTripBikeData = {
+            status: "on_trip",
+            stationId: null,
+        };
+        const onTripBikeDoc = makeDocSnapshot(onTripBikeData, bikeId, bikeRef);
 
         const reservationsCol = {
             where: jest.fn().mockReturnValue({
@@ -282,6 +288,7 @@ describe("Interactive use cases", () => {
             }),
         };
 
+        // Reserve phase
         db.collection.mockImplementation((name: string) => {
             if (name === "reservations") return reservationsCol;
             if (name === "stations") return stationsCol;
@@ -305,7 +312,7 @@ describe("Interactive use cases", () => {
         const reserveResult = await service.reserveBike({ email, stationName: "Station A", bikeId });
         expect(reserveResult.ok).toBe(true);
 
-        // === UNLOCK PHASE ===
+        // Unlock phase
         bikeRef.get = jest.fn().mockResolvedValueOnce(reservedBikeDoc);
 
         const activeReservationSnap = snapFromDocs([
@@ -331,21 +338,60 @@ describe("Interactive use cases", () => {
             }),
         });
 
-        // Mock transaction for unlock
         db.runTransaction.mockImplementationOnce(async (transactionFn: any) => {
             const tx = { update: jest.fn() };
             await transactionFn(tx);
         });
 
-        // Mock freeUpDock
         service.freeUpDock = jest.fn().mockResolvedValue(undefined);
 
         const unlockResult = await service.unlockBike({ email, bikeId });
         expect(unlockResult.ok).toBe(true);
         expect(service.freeUpDock).toHaveBeenCalledWith(stationAId);
 
-        //const returnResult = await service.returnBike({ email, bikeId, stationId: stationBId });
+        // Return phase
+        db.collection.mockImplementation((name: string) => {
+            if (name === "bikes") return { doc: () => bikeRef };
+            if (name === "stations") return { doc: () => stationBRef };
+            if (name === "reservations") {
+                return {
+                    where: jest.fn().mockReturnThis(),
+                    orderBy: jest.fn().mockReturnThis(),
+                    limit: jest.fn().mockReturnThis(),
+                };
+            }
+            return { doc: jest.fn() };
+        });
 
-        //expect(returnResult.ok).toBe(true);
+        db.runTransaction.mockImplementationOnce(async (transactionFn: any) => {
+            const tx = {
+                get: jest
+                    .fn()
+                    .mockResolvedValueOnce(onTripBikeDoc)
+                    .mockResolvedValueOnce(stationBDoc)
+                    .mockResolvedValueOnce(
+                        snapFromDocs([makeDocSnapshot({ status: "empty" }, "dock1", dockRef)])
+                    )
+                    .mockResolvedValueOnce(snapFromDocs([])),
+                update: jest.fn(),
+            };
+            return transactionFn(tx);
+        });
+
+        stationBRef.get = jest.fn(() =>
+            Promise.resolve(
+                makeDocSnapshot(
+                    { name: "Station B", numberOfBikes: 1, capacity: 2, status: "occupied" },
+                    stationBId,
+                    stationBRef
+                )
+            )
+        );
+
+        const returnResult = await service.returnBike({ email, bikeId, stationId: stationBId });
+        expect(returnResult.ok).toBe(true);
+
+        // Billing and receipt phase
+        
     });
 });
