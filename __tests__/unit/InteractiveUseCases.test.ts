@@ -59,6 +59,10 @@ function refUpdate(bike: any) {
     bike.status = "available";
 }
 
+function makeUserCredit() {
+    return "{ $5 }";
+}
+
 describe("Interactive use cases", () => {
     let db: any;
     let service: BikeReservationService;
@@ -74,6 +78,44 @@ describe("Interactive use cases", () => {
 
         service = new BikeReservationService(db);
         billingService = new BillingService(mockFirestore);
+    });
+
+    test("Station Full: return attempt at full station triggers overflow credit", async () => {
+        const bikeRef = makeRef("bike123");
+        const stationRef = makeRef("stationA");
+
+        db.collection.mockImplementation((name: string) => ({
+            doc: () => (name === "bikes" ? bikeRef : stationRef),
+            where: jest.fn().mockReturnThis(),
+            orderBy: jest.fn().mockReturnThis(),
+            limit: jest.fn().mockReturnThis(),
+        }));
+
+        const userCredit = makeUserCredit();
+
+        db.runTransaction.mockImplementation(async (fn: any) =>
+            fn({
+                get: jest
+                    .fn()
+                    .mockResolvedValueOnce(
+                        makeDocSnapshot({ status: "on_trip" }, "bike123", bikeRef)
+                    )
+                    .mockResolvedValueOnce(
+                        makeDocSnapshot({ numberOfBikes: 2, capacity: 10 }, "stationA", stationRef)
+                    )
+                    .mockResolvedValueOnce(emptySnap())
+                    .mockResolvedValueOnce(snapFromDocs([])),
+            })
+        );
+
+        await expect(
+            service.returnBike({
+                email: "u@test.com",
+                bikeId: "bike123",
+                stationId: "stationA",
+            })
+        ).rejects.toThrow("No available docks at this station.");
+        console.log("Interactive test: Station Full\nUser account credit now available: " + userCredit);
     });
 
     test("Reservation Expiry: bike state changes to available, notification sent", async () => {
@@ -128,7 +170,7 @@ describe("Interactive use cases", () => {
             ok: false,
             message: "Reservation expired, bike is now available.",
         });
-        console.log("Result message: " + JSON.stringify(result.message) + "\nUpdated bike: " + JSON.stringify(reservedBike));
+        console.log("Interactive test: Reservation Expiry\nResult message: " + JSON.stringify(result.message) + "\nUpdated bike: " + JSON.stringify(reservedBike));
 
         expect(db.runTransaction).toHaveBeenCalled();
 
@@ -146,6 +188,7 @@ describe("Interactive use cases", () => {
         const stationName = "Station A";
         const bikeId = "bike123";
         const stationId = "stationA";
+        const notificationMessage = `${stationName} is now empty after reservation`;
 
         const noActiveReservationSnap = snapFromDocs([]);
 
@@ -227,8 +270,9 @@ describe("Interactive use cases", () => {
         expect(createAdminNotification).toHaveBeenCalledWith(
             db,
             "Station Empty",
-            `${stationName} is now empty after reservation`
+            notificationMessage
         );
+        console.log("Interactive test: Rebalancing\nOperator alert: " + notificationMessage);
     });
 
     test("Happy Path Ride: reserve, unlock, ride, return, bill computed, receipt sent", async () => {
@@ -451,7 +495,7 @@ describe("Interactive use cases", () => {
             stripeSessionId: billingData.stripeSessionId,
             stripePaymentIntentId: billingData.stripePaymentIntentId,
         });
-        console.log("Trip message: " + JSON.stringify(returnResult.message) + "\nBilling and trip information: " + JSON.stringify(billingResult));
+        console.log("Interactive test: Happy Path\nTrip message: " + JSON.stringify(returnResult.message) + "\nBilling and trip information: " + JSON.stringify(billingResult));
 
         expect(billingResult).toBeInstanceOf(Billing);
         expect(billingResult.email).toBe(billingData.email);
