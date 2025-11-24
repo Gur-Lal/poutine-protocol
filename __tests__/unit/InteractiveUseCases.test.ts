@@ -3,7 +3,7 @@ import { BillingService } from "../../src/domain/services/billingService";
 import { Billing, BillingStatus } from "../../src/domain/models/Billing";
 import { createNotification } from "../../src/domain/services/notificationService";
 import { createAdminNotification } from "../../src/domain/services/adminService";
-import { Timestamp } from "firebase-admin/firestore";
+import { Timestamp, Firestore } from "firebase-admin/firestore";
 
 jest.mock("../../src/domain/services/notificationService", () => ({
     createNotification: jest.fn(),
@@ -59,11 +59,12 @@ function refUpdate(bike: any) {
     bike.status = "available";
 }
 
-function makeUserCredit() {
+function fetchUserCredit() {
     return "{ $5 }";
 }
 
 describe("Interactive use cases", () => {
+    let mockDb: jest.Mocked<Firestore>;
     let db: any;
     let service: BikeReservationService;
     let billingService: BillingService;
@@ -91,7 +92,7 @@ describe("Interactive use cases", () => {
             limit: jest.fn().mockReturnThis(),
         }));
 
-        const userCredit = makeUserCredit();
+        const userCredit = fetchUserCredit();
 
         db.runTransaction.mockImplementation(async (fn: any) =>
             fn({
@@ -115,7 +116,7 @@ describe("Interactive use cases", () => {
                 stationId: "stationA",
             })
         ).rejects.toThrow("No available docks at this station.");
-        console.log("Interactive test: Station Full\nUser account credit now available: " + userCredit);
+        console.log("Interactive test: Station Full\nUser account credit: " + userCredit);
     });
 
     test("Reservation Expiry: bike state changes to available, notification sent", async () => {

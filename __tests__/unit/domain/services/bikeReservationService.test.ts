@@ -1,5 +1,5 @@
 import { BikeReservationService } from "../../../../src/domain/services/bikeReservationService";
-import { Timestamp } from "firebase-admin/firestore";
+import { Timestamp, Firestore } from "firebase-admin/firestore";
 
 jest.mock("../../../../src/domain/services/notificationService", () => ({
     createNotification: jest.fn(),
@@ -36,6 +36,7 @@ function snapFromDocs(docs: any[]) {
 }
 
 describe("BikeReservationService.reserveBike", () => {
+    let mockDb: jest.Mocked<Firestore>;
     let db: any;
     let service: BikeReservationService;
 
