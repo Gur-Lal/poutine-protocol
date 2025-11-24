@@ -51,6 +51,7 @@ export async function getRiderStats(email: string): Promise<RiderStats> {
 
     let tripsLastYear = 0;
     let allBikesReturned = true;
+    const MAX_ACTIVE_TRIP_HOURS = 6;
 
     const monthCountMap = new Map<string,  number>();
     const weekCountMap = new Map<string, number> ();
@@ -64,7 +65,12 @@ export async function getRiderStats(email: string): Promise<RiderStats> {
             tripsLastYear++;
         }
 
-        if(!end) allBikesReturned = false;
+        if(!end) {
+            const hoursActive = (now.getTime() - start.getTime()) / (1000 * 60 *60);
+            if(hoursActive > MAX_ACTIVE_TRIP_HOURS){
+                allBikesReturned = false;
+            }
+        }
 
         const mKey = monthKey(start);
         monthCountMap.set(mKey, (monthCountMap.get(mKey) ?? 0) + 1);
