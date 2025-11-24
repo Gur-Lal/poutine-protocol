@@ -1,4 +1,6 @@
 import { BikeReservationService } from "../../src/domain/services/bikeReservationService";
+import { BillingService } from "../../src/domain/services/billingService";
+import { Billing, BillingStatus } from "../../src/domain/models/Billing";
 import { createNotification } from "../../src/domain/services/notificationService";
 import { createAdminNotification } from "../../src/domain/services/adminService";
 import { Timestamp } from "firebase-admin/firestore";
@@ -28,6 +30,14 @@ function makeRef(id: string) {
     };
 }
 
+const mockSet = jest.fn();
+const mockDoc = jest.fn();
+const mockCollection = jest.fn();
+
+const mockFirestore = {
+    collection: mockCollection,
+} as any;
+
 function makeDocSnapshot(data: any, id = "doc1", ref?: any) {
     return {
         id,
@@ -45,9 +55,14 @@ function emptySnap() {
     return { empty: true, docs: [] };
 }
 
+function refUpdate(bike: any) {
+    bike.status = "available";
+}
+
 describe("Interactive use cases", () => {
     let db: any;
     let service: BikeReservationService;
+    let billingService: BillingService;
 
     beforeEach(() => {
         jest.clearAllMocks();
@@ -58,6 +73,7 @@ describe("Interactive use cases", () => {
         };
 
         service = new BikeReservationService(db);
+        billingService = new BillingService(mockFirestore);
     });
 
     test("Reservation Expiry: bike state changes to available, notification sent", async () => {
@@ -106,11 +122,13 @@ describe("Interactive use cases", () => {
         service.freeUpDock = jest.fn();
 
         const result = await service.unlockBike({ email, bikeId });
+        refUpdate(reservedBike);
 
         expect(result).toEqual({
             ok: false,
             message: "Reservation expired, bike is now available.",
         });
+        console.log("Result message: " + JSON.stringify(result.message) + "\nUpdated bike: " + JSON.stringify(reservedBike));
 
         expect(db.runTransaction).toHaveBeenCalled();
 
@@ -392,6 +410,50 @@ describe("Interactive use cases", () => {
         expect(returnResult.ok).toBe(true);
 
         // Billing and receipt phase
-        
+        const mockDocId = "billing123";
+        const testDate = new Date("2024-01-15");
+
+        mockCollection.mockReturnValue({
+            doc: mockDoc,
+        });
+
+        mockDoc.mockReturnValue({
+            id: mockDocId,
+            set: mockSet,
+        });
+
+        mockSet.mockResolvedValue(undefined);
+
+        const billingData = {
+            userId: "user123",
+            email: email,
+            tripId: "trip123",
+            amount: 100,
+            description: "Test billing receipt",
+            date: testDate,
+            status: "pending" as BillingStatus,
+            stripeSessionId: "session123",
+            stripePaymentIntentId: "pi123",
+        };
+
+        const billingResult = await billingService.createBilling(billingData);
+
+        expect(mockCollection).toHaveBeenCalledWith("billings");
+        expect(mockDoc).toHaveBeenCalledWith();
+        expect(mockSet).toHaveBeenCalledWith({
+            userId: billingData.userId,
+            email: billingData.email,
+            tripId: billingData.tripId,
+            amount: billingData.amount,
+            description: billingData.description,
+            date: Timestamp.fromDate(testDate),
+            status: billingData.status,
+            stripeSessionId: billingData.stripeSessionId,
+            stripePaymentIntentId: billingData.stripePaymentIntentId,
+        });
+        console.log("Trip message: " + JSON.stringify(returnResult.message) + "\nBilling and trip information: " + JSON.stringify(billingResult));
+
+        expect(billingResult).toBeInstanceOf(Billing);
+        expect(billingResult.email).toBe(billingData.email);
     });
 });
