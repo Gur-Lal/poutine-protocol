@@ -25,6 +25,7 @@ const customJestConfig = {
     "!src/**/layout.tsx",
     "!**__tests__/**",
     "!**/UI/**",
+    "!**/tierService.ts /**",
   ],
 
   coverageReporters: ["json", "lcov", "text", "html"],

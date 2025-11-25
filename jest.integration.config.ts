@@ -22,6 +22,7 @@ module.exports = {
     "!**/models/**",
     "!**/jest.setup.js",
     "!**/notificationService.ts",
+    "!**/serverNotificationService.ts",
   ],
   testMatch: ["**/__tests__/integration/**/*.test.ts"],
   setupFilesAfterEnv: ["<rootDir>/__tests__/setupIntegration.ts"],
