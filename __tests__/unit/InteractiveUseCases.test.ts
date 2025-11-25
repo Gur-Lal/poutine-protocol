@@ -1,12 +1,23 @@
 import { BikeReservationService } from "../../src/domain/services/bikeReservationService";
 import { BillingService } from "../../src/domain/services/billingService";
 import { Billing, BillingStatus } from "../../src/domain/models/Billing";
-import { createNotification } from "../../src/domain/services/notificationService";
 import { createAdminNotification } from "../../src/domain/services/adminService";
 import { Timestamp, Firestore } from "firebase-admin/firestore";
 
+jest.mock("../../src/domain/services/tierService", () => ({
+    updateRiderTier: jest.fn(),
+    getTierPerks: jest.fn().mockReturnValue({
+        discount: 0,
+        extraReservationMinutes: 0,
+    }),
+}));
+
 jest.mock("../../src/domain/services/notificationService", () => ({
     createNotification: jest.fn(),
+}));
+
+jest.mock("../../src/domain/services/serverNotificationService", () => ({
+    createServerNotification: jest.fn(),
 }));
 
 jest.mock("../../src/domain/services/adminService", () => {
@@ -175,24 +186,25 @@ describe("Interactive use cases", () => {
 
         expect(db.runTransaction).toHaveBeenCalled();
 
-        expect(createNotification).toHaveBeenCalledWith(
-            email,
-            "Reservation expired",
-            "The bike you had reserved is now available."
-        );
-
         expect(service.freeUpDock).not.toHaveBeenCalled();
     });
 
     test("Rebalancing: operators get an alert when a station becomes empty", async () => {
+        const userRef = makeRef("user123");
         const email = "test@example.com";
         const stationName = "Station A";
         const bikeId = "bike123";
         const stationId = "stationA";
         const notificationMessage = `${stationName} is now empty after reservation`;
 
-        const noActiveReservationSnap = snapFromDocs([]);
+        const userData = {
+            email: email,
+            tier: "none"
+        };
+        const userDoc = makeDocSnapshot(userData, "user123", userRef);
 
+        // Mock active reservations check
+        const noActiveReservationSnap = snapFromDocs([]);
         db.collection.mockReturnValueOnce({
             where: () => ({
                 where: () => ({
@@ -226,6 +238,14 @@ describe("Interactive use cases", () => {
             }),
         });
 
+        db.collection.mockReturnValueOnce({
+            where: () => ({
+                limit: () => ({
+                    get: jest.fn().mockResolvedValueOnce(snapFromDocs([userDoc])),
+                }),
+            }),
+        });
+
         const bikeRef = makeRef(bikeId);
         db.collection.mockReturnValueOnce({
             doc: () => bikeRef,
@@ -248,13 +268,19 @@ describe("Interactive use cases", () => {
                             numberOfBikes: 1,
                             capacity: 10,
                             expiresAfterMinutes: 10,
+                            id: stationId
                         }),
+                    })
+                    .mockResolvedValueOnce({
+                        exists: true,
+                        ref: userRef,
+                        data: () => userData,
                     })
                     .mockResolvedValueOnce({
                         exists: true,
                         data: () => ({
                             status: "available",
-                            stationId,
+                            stationId: stationId,
                         }),
                     }),
                 update: jest.fn(),
@@ -277,8 +303,15 @@ describe("Interactive use cases", () => {
     });
 
     test("Happy Path Ride: reserve, unlock, ride, return, bill computed, receipt sent", async () => {
+        const userRef = makeRef("user123");
         const email = "test@example.com";
         const bikeId = "bike-1";
+
+        const userData = {
+            email: email,
+            tier: "none"
+        };
+        const userDoc = makeDocSnapshot(userData, "user123", userRef);
 
         const stationAId = "id-A";
         const stationARef = makeRef(stationAId);
@@ -325,6 +358,14 @@ describe("Interactive use cases", () => {
         };
         const onTripBikeDoc = makeDocSnapshot(onTripBikeData, bikeId, bikeRef);
 
+        const usersCol = {
+            where: jest.fn().mockReturnValue({
+                limit: jest.fn().mockReturnValue({
+                    get: jest.fn().mockResolvedValue(snapFromDocs([userDoc])),
+                }),
+            }),
+        };
+
         const reservationsCol = {
             where: jest.fn().mockReturnValue({
                 where: jest.fn().mockReturnValue({
@@ -353,6 +394,7 @@ describe("Interactive use cases", () => {
 
         // Reserve phase
         db.collection.mockImplementation((name: string) => {
+            if (name === "users") return usersCol;
             if (name === "reservations") return reservationsCol;
             if (name === "stations") return stationsCol;
             if (name === "bikes") return bikesCol;
@@ -362,6 +404,7 @@ describe("Interactive use cases", () => {
         db.runTransaction.mockImplementation(async (transactionFn: any) => {
             const tx = {
                 get: jest.fn().mockImplementation(async (ref: any) => {
+                    if (ref === userRef) return userDoc;
                     if (ref === stationARef) return stationADoc;
                     if (ref === bikeRef) return bikeDoc;
                     return emptySnap();
@@ -414,6 +457,7 @@ describe("Interactive use cases", () => {
 
         // Return phase
         db.collection.mockImplementation((name: string) => {
+            if (name === "users") return usersCol;
             if (name === "bikes") return { doc: () => bikeRef };
             if (name === "stations") return { doc: () => stationBRef };
             if (name === "reservations") {

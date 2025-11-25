@@ -1,8 +1,20 @@
 import { BikeReservationService } from "../../../../src/domain/services/bikeReservationService";
 import { Timestamp, Firestore } from "firebase-admin/firestore";
 
+jest.mock("../../../../src/domain/services/tierService", () => ({
+  updateRiderTier: jest.fn(),
+  getTierPerks: jest.fn().mockReturnValue({
+    discount: 0,
+    extraReservationMinutes: 0,
+  }),
+}));
+
 jest.mock("../../../../src/domain/services/notificationService", () => ({
     createNotification: jest.fn(),
+}));
+
+jest.mock("../../../../src/domain/services/serverNotificationService", () => ({
+    createServerNotification: jest.fn(),
 }));
 
 function makeRef(id: string) {
@@ -113,9 +125,16 @@ describe("BikeReservationService.reserveBike", () => {
     });
 
     test("reserves a bike successfully", async () => {
+        const userRef = makeRef("user123");
         const stationRef = makeRef("station123");
         const bikeRef = makeRef("bike123");
         const reservationRef = makeRef("newRes123");
+
+        const userData = {
+            email: "test@example.com",
+            tier: "none"
+        };
+        const userDoc = makeDocSnapshot(userData, "user123", userRef);
 
         const stationData = {
             name: "Station A",
@@ -131,6 +150,14 @@ describe("BikeReservationService.reserveBike", () => {
             stationId: "station123",
         };
         const bikeDoc = makeDocSnapshot(bikeData, "bike123", bikeRef);
+
+        const usersCol = {
+            where: jest.fn().mockReturnValue({
+                limit: jest.fn().mockReturnValue({
+                    get: jest.fn().mockResolvedValue(snapFromDocs([userDoc])),
+                }),
+            }),
+        };
 
         const reservationsCol = {
             where: jest.fn().mockReturnValue({
@@ -159,6 +186,7 @@ describe("BikeReservationService.reserveBike", () => {
         };
 
         db.collection.mockImplementation((name: string) => {
+            if (name === "users") return usersCol;
             if (name === "reservations") return reservationsCol;
             if (name === "stations") return stationsCol;
             if (name === "bikes") return bikesCol;
@@ -168,6 +196,7 @@ describe("BikeReservationService.reserveBike", () => {
         db.runTransaction.mockImplementation(async (transactionFn: any) => {
             const tx = {
                 get: jest.fn().mockImplementation(async (ref: any) => {
+                    if (ref === userRef) return userDoc;
                     if (ref === stationRef) return stationDoc;
                     if (ref === bikeRef) return bikeDoc;
                     return emptySnap();
