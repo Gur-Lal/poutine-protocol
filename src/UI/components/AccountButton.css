@@ -1,0 +1,171 @@
+.accountButtonContainer {
+    position: relative;
+}
+
+.accountButton {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background-color: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: white;
+    padding: 8px 16px;
+    border-radius: 12px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.3s ease;
+}
+
+.accountButton:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.5);
+}
+
+.accountButtonLoading {
+    padding: 8px 16px;
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 14px;
+}
+
+.accountDropdown {
+    position: fixed;
+    top: 70px;
+    right: 20px;
+    background-color: rgb(21, 21, 26);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 15px;
+    min-width: 300px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+}
+
+.accountHeader {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 20px;
+}
+
+.accountAvatar {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+}
+
+.accountName {
+    margin: 0 0 8px 0;
+    font-size: 18px;
+    font-weight: bold;
+}
+
+.roleBadge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.roleBadge.admin {
+    background-color: rgba(239, 68, 68, 0.2);
+    color: #fca5a5;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.roleBadge.rider {
+    background-color: rgba(34, 197, 94, 0.2);
+    color: #86efac;
+    border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.tierBadge{
+    display: inline-flex;
+    margin-left:5px;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: bold;
+    background-color: rgba(107, 114, 128, 0.15);
+    color: #d1d5db;
+    border: 1px solid rgba(107, 114, 128, 0.25);
+}
+
+.tierBadge.gold{
+    background-color:rgba(250, 204, 21, 0.85);
+    color: #854d0e;
+    border: 1px solid rgba(202, 138, 4, 0.9);
+}
+
+.tierBadge.silver{
+    background-color: rgba(229, 231, 235, 0.85);
+    color: #374151;
+    border: 1px solid rgba(156, 163, 175, 0.9);
+}
+
+.tierBadge.bronze{
+    background-color: rgba(168, 85, 33, 0.2);
+    color: #f59e0b;
+    border: 1px solid rgba(168, 85, 33, 0.3);
+}
+
+.accountDivider {
+    height: 1px;
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.accountInfo {
+    padding: 15px 20px;
+}
+
+.accountInfoItem {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.accountInfoItem:last-child {
+    border-bottom: none;
+}
+
+.accountLabel {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.5);
+    margin-bottom: 4px;
+}
+
+.accountValue {
+    font-size: 14px;
+    color: white;
+}
+
+.logoutButton {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    padding: 15px;
+    background-color: transparent;
+    border: none;
+    color: #ef4444;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    border-radius: 0 0 15px 15px;
+    transition: background-color 0.3s ease;
+}
+
+.logoutButton:hover {
+    background-color: rgba(239, 68, 68, 0.1);
+}

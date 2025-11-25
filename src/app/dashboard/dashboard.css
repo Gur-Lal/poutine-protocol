@@ -548,3 +548,216 @@
     border-top:1px solid lightgrey;
     padding-top:5px;
 }
+
+.tripHistoryHeaderRow {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.viewToggleContainer {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.viewToggleLabel {
+    font-size: 14px;
+    color: rgb(183, 183, 183);
+}
+
+.viewToggleButton {
+    padding: 8px 16px;
+    border-radius: 8px;
+    border: 2px solid rgb(60, 60, 70);
+    background-color: rgb(40, 40, 49);
+    color: white;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.viewToggleButton:hover {
+    background-color: rgb(60, 60, 70);
+}
+
+.viewToggleButton.active {
+    border-color: #0070f3;
+    background-color: #0070f3;
+    box-shadow: 0 0 10px rgba(0, 112, 243, 0.5);
+}
+.ticketPanel {
+    width: 100%;
+    padding: 20px;
+    color: white;
+}
+
+.ticketTitle {
+    font-size: 26px;
+    margin-bottom: 20px;
+}
+
+.ticketList {
+    width: 100%;
+    background: rgb(21, 21, 26);
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid rgb(40, 40, 49);
+}
+
+.ticketHeader {
+    display: flex;
+    padding: 18px;
+    background: rgb(40, 40, 49);
+    font-weight: bold;
+}
+
+.ticketItem {
+    display: flex;
+    padding: 18px;
+    border-bottom: 1px solid rgb(40, 40, 49);
+    cursor: pointer;
+}
+
+.ticketItem:hover {
+    background: rgb(47, 47, 58);
+    transition: 0.2s ease;
+}
+
+.ticketField {
+    flex: 1;
+    display: flex;
+    align-items: center;
+}
+
+.ticketDescription {
+    color: rgb(200, 200, 200);
+    font-size: 14px;
+}
+
+.ticketImage {
+    width: 55px;
+    height: 55px;
+    object-fit: cover;
+    border-radius: 8px;
+}
+
+.ticketEmpty {
+    padding: 20px;
+    text-align: center;
+    color: gray;
+}
+
+.ticketModalBackdrop {
+    background: rgba(0, 0, 0, 0.6);
+    position: fixed;
+    inset: 0;
+    z-index: 80;
+}
+
+.ticketModal {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: white;
+    color: black;
+    padding: 25px;
+    border-radius: 12px;
+    width: 380px;
+    z-index: 100;
+}
+
+.ticketModal img {
+    width: 100%;
+    margin-top: 15px;
+    border-radius: 10px;
+}
+
+.ticketModalClose {
+    position: absolute;
+    right: 15px;
+    top: 15px;
+    cursor: pointer;
+}
+.ticketFormGroup {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 20px;
+}
+
+.ticketLabel {
+    margin-bottom: 6px;
+    color: #ddd;
+    font-size: 15px;
+}
+
+.ticketInput,
+.ticketTextarea,
+.ticketFileInput {
+    padding: 12px;
+    background: rgb(30, 30, 38);
+    color: white;
+    border: 1px solid rgb(50, 50, 60);
+    border-radius: 10px;
+    font-size: 15px;
+}
+
+.ticketInput:focus,
+.ticketTextarea:focus {
+    outline: none;
+    border-color: rgb(100, 100, 255);
+}
+
+.ticketTextarea {
+    height: 120px;
+    resize: none;
+}
+
+.ticketImagePreviewWrapper {
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: center;
+}
+
+.ticketImagePreview {
+    width: 160px;
+    height: 160px;
+    object-fit: cover;
+    border-radius: 12px;
+    border: 1px solid rgb(60, 60, 70);
+}
+
+.ticketSubmitButton {
+    width: 100%;
+    padding: 14px;
+    background: rgb(70, 110, 255);
+    color: white;
+    font-weight: bold;
+    border-radius: 12px;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+    transition: 0.2s;
+}
+
+.ticketSubmitButton:hover {
+    background: rgb(90, 130, 255);
+}
+
+.ticketSubmitButton:disabled {
+    background: rgb(60, 60, 75);
+    cursor: not-allowed;
+}
+
+.ticketSuccess {
+    background: rgb(45, 100, 50);
+    padding: 12px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+    color: #b2ffb5;
+    border: 1px solid rgb(65, 120, 70);
+    text-align: center;
+}

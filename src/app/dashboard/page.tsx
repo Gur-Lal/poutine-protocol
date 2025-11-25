@@ -11,12 +11,20 @@ import { Reservation } from "@/domain/models/Reservation";
 import { createNotification } from "@/domain/services/notificationService";
 import TripHistoryPanel from "@/UI/components/TripHistoryPanel";
 import NotificationButton from "@/UI/components/NotificationButton";
+import AdminTicketList from "@/UI/components/tickets/AdminTicketList";
+import TicketSubmissionPanel from "@/UI/components/tickets/TicketSubmissionPanel";
 import PaymentModal from "@/UI/components/PaymentModal";
 import BillingHistoryPanel from "@/UI/components/BillingHistoryPanel";
 import PricingPanel from "@/UI/components/PricingPanel";
 import axios from "axios";
 import { clientObserver, ClientSubscriber, ClientUpdateData } from "@/lib/client-observer";
 import "./dashboard.css";
+import RoleToggle from "@/UI/components/RoleToggle";
+import { Tier } from "@/domain/models/UserData";
+import AccountButton from "@/UI/components/AccountButton";
+import { signOut } from "firebase/auth";
+import { User } from "firebase/auth";
+
 
 declare global {
     interface Window {
@@ -40,14 +48,20 @@ export default function DashboardPage() {
     const [showPaymentModal, setShowPaymentModal] = useState(false);
     const [paymentTripId, setPaymentTripId] = useState<string>("");
     const [onBikeTrip, setOnBikeTrip] = useState(false);
+    const [tier, setTier] = useState<Tier>("none");
+    
+
+    const [user, setUser] = useState<User | null>(null);
+    const subscriberIdRef = useRef<string>("");
 
     // Admin states
-    const [userRole, setUserRole] = useState("");
+    const [userRole, setUserRole] = useState<"rider" | "operator" | "admin" | "dual">("rider");
+    const [activeRole, setActiveRole] = useState<"operator" | "rider">("rider");
     const [showMoveModal, setShowMoveModal] = useState(false);
     const [destinationStationId, setDestinationStationId] = useState("");
 
     // Tab state 
-    const [currentTab, setCurrentTab] = useState<"stations" | "trips" | "billing" | "pricing">("stations");
+    const [currentTab, setCurrentTab] = useState<"stations" | "trips" | "billing" | "pricing" | "tickets">("stations");
 
     // Maps
     const mapRef = useRef<HTMLDivElement>(null);
@@ -55,6 +69,12 @@ export default function DashboardPage() {
     const markersRef = useRef<any[]>([]);
     const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
     const [mapReady, setMapReady] = useState(false);
+
+    const isOperatorMode = () => {
+        return userRole === "admin" ||
+            userRole === "operator" ||
+            (userRole === "dual" && activeRole === "operator");
+    };
 
     const router = useRouter();
 
@@ -72,6 +92,15 @@ export default function DashboardPage() {
         setOpenReservationMenu(true);
         fetchBikesByStation(station.id);
     }, []);
+
+    const handleLogout = async () => {
+        if (subscriberIdRef.current) {
+            clientObserver.unsubscribe(subscriberIdRef.current);
+        }
+
+        await signOut(auth);
+        router.push("/");
+    };
 
     useEffect(() => {
         // Create subscriber to receive updates from BMSCore
@@ -101,15 +130,28 @@ export default function DashboardPage() {
 
         // Subscribe with unique ID
         const subscriberId = `dashboard-${Date.now()}`;
+        subscriberIdRef.current = subscriberId;
         clientObserver.subscribe(subscriberId, dashboardSubscriber);
 
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
             if (user) {
                 setEmail(user.email || "");
+                setUser(user);
                 try {
+
+                    if(user.email){
+                        const tierResponse = await axios.post("/api/updateTier/", {
+                            email: user.email
+                        });
+                        console.log("Tier:", tierResponse.data.tier);
+                        setTier(tierResponse.data.tier);
+                    }
                     // Fetch user role
-                    const roleResponse = await axios.get(`/api/getUserRole/${user.uid}`);
-                    setUserRole(roleResponse.data.role);
+                    const roleResponse = await axios.get(`/api/activeRole?userId=${user.uid}`);
+                    if (roleResponse.data.ok) {
+                        setUserRole(roleResponse.data.role);
+                        setActiveRole(roleResponse.data.activeRole || "rider");
+                    }
 
                     const response = await axios.get(`api/getDocuments/stations`);
                     setStations(response.data);
@@ -117,6 +159,10 @@ export default function DashboardPage() {
                     console.log("Error fetching stations: ", error);
                 }
             } else {
+                setUser(null);
+                setEmail("");
+                setStations([]);
+                setReservation(undefined);
                 router.push("/login");
             }
             setLoading(false);
@@ -327,7 +373,7 @@ export default function DashboardPage() {
         console.log("Successfully added", markersRef.current.length, "markers");
     }, [stations, mapReady, handleStationClick]);
 
-        const refreshOnBikeTrip = async (email: string) => {
+    const refreshOnBikeTrip = async (email: string) => {
         try {
             const response = await axios.get(`/api/trips/active/${email}`);
             setOnBikeTrip(response.data.trip !== null);
@@ -356,28 +402,28 @@ export default function DashboardPage() {
             const tripId = urlParams.get('trip');
 
             if (paymentStatus === 'success' && tripId) {
-            console.log('Payment successful for trip:', tripId);
-            
-            try {
-                const response = await fetch('/api/markBillingPaid', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ tripId }),
-                });
+                console.log('Payment successful for trip:', tripId);
 
-                const data = await response.json();
-                
-                if (data.ok) {
-                console.log('Billing marked as paid');
+                try {
+                    const response = await fetch('/api/markBillingPaid', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ tripId }),
+                    });
+
+                    const data = await response.json();
+
+                    if (data.ok) {
+                        console.log('Billing marked as paid');
+                    }
+                } catch (error) {
+                    console.error('Error marking billing as paid:', error);
                 }
-            } catch (error) {
-                console.error('Error marking billing as paid:', error);
-            }
 
-            // Clean up URL
-            window.history.replaceState({}, '', '/dashboard');
+                // Clean up URL
+                window.history.replaceState({}, '', '/dashboard');
             }
         };
 
@@ -522,6 +568,8 @@ export default function DashboardPage() {
             });
 
             if (response.data.ok) {
+                const tierResponse = await axios.post("/api/updateTier", { email });
+                setTier(tierResponse.data.tier);
                 await createNotification(
                     email,
                     `Bike returned`,
@@ -664,6 +712,8 @@ export default function DashboardPage() {
     return (
         <main className="dashboardContainer">
             <div className="header">
+                <NotificationButton />
+
                 <div className="navBar">
                     <div
                         className={`navOption ${currentTab === "stations" ? "active" : ""}`}
@@ -676,6 +726,12 @@ export default function DashboardPage() {
                         onClick={() => setCurrentTab("trips")}
                     >
                         Trip History
+                    </div>
+                    <div
+                        className={`navOption ${currentTab === "tickets" ? "active" : ""}`}
+                        onClick={() => setCurrentTab("tickets")}
+                        >
+                        Tickets
                     </div>
                     {userRole !== "admin" && (
                         <>
@@ -699,20 +755,35 @@ export default function DashboardPage() {
                             View Reservation
                         </div>
                     )}
-                    {userRole === "admin" && (
+                    {isOperatorMode() && (
                         <div className="navOption adminOption" onClick={handleResetSystem}>
                             Reset System
                         </div>
                     )}
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                    <NotificationButton />
-                    {userRole === "admin" && (
-                        <div className="adminBadge">ADMIN</div>
+                <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '15px'
+                }}>
+                    {auth.currentUser && userRole === "dual" && (
+                        <RoleToggle
+                            user={auth.currentUser}
+                            onRoleChange={(newRole) => setActiveRole(newRole)}
+                        />
                     )}
+
+                    {isOperatorMode() && (
+                        <div className="adminBadge">
+                            {userRole === "admin" ? "ADMIN" : "OPERATOR"}
+                        </div>
+                    )}
+
+                    {user && <AccountButton user={user} onLogout={handleLogout} />}
                 </div>
             </div>
+
             <div className="dashboardArea">
                 {currentTab === "stations" && (
                     <>
@@ -732,7 +803,7 @@ export default function DashboardPage() {
                                         <p className="capacity">Total Capacity: {station.capacity}</p>
                                         <p className="bikesAvailable">Bikes: {station.numberOfBikes}</p>
 
-                                        {userRole === "admin" && (
+                                        {isOperatorMode() && (
                                             <button
                                                 className="adminStationBtn"
                                                 onClick={(e) => handleSetStationService(station, e)}
@@ -756,13 +827,22 @@ export default function DashboardPage() {
                 )}
 
                 {currentTab === "trips" && (
-                    <TripHistoryPanel email={email} role={userRole} />
+                    <TripHistoryPanel
+                        email={email}
+                        role={userRole}
+                        activeRole={activeRole}
+                    />
                 )}
 
                 {currentTab === "pricing" && (
                     <PricingPanel email={email} />
                 )}
 
+                {currentTab === "tickets" && (
+                    userRole === "admin" || activeRole === "operator"
+                        ? <AdminTicketList />
+                        : <TicketSubmissionPanel userId={user?.uid || ""} />
+                )}
             </div>
 
             {
@@ -771,14 +851,14 @@ export default function DashboardPage() {
                         <div className="background"></div>
                         <div className="reservationMenu">
                             <FaXmark className="xButton" onClick={() => handleCloseReservationMenu()} />
-                            <p className="title">{userRole === "admin" ? "MANAGE BIKES" : "RESERVE or RETURN"}</p>
+                            <p className="title">{isOperatorMode() ? "MANAGE BIKES" : "RESERVE or RETURN"}</p>
                             <p>{selectedStation.name.toUpperCase()}</p>
                             <div className="bikeList">
                                 {
                                     bikes.map((bike, index) => (
                                         <div className={`bikeItem ${selectedBike?.id === bike.id ? 'selected' : ''} ${bike.status === "available" ? 'available' : 'reserved'}`} key={index} onClick={() => handleBikeClick(bike)}>
-                                            {bike.isEBike?<p>E-Bike: {bike.status.toUpperCase()}</p>:<p>Regular Bike: {bike.status.toUpperCase()}</p>}
-                                            {userRole === "admin" && bike.status !== "on_trip" && bike.status !== "reserved" && (
+                                            {bike.isEBike ? <p>E-Bike: {bike.status.toUpperCase()}</p> : <p>Regular Bike: {bike.status.toUpperCase()}</p>}
+                                            {isOperatorMode() && bike.status !== "on_trip" && bike.status !== "reserved" && (
                                                 <button
                                                     className="adminBikeAction"
                                                     onClick={(e) => {
@@ -794,7 +874,7 @@ export default function DashboardPage() {
                                 }
                             </div>
 
-                            {userRole === "admin" ? (
+                            {isOperatorMode() ? (
                                 <button className="actionButton" onClick={() => {
                                     if (!selectedBike) {
                                         alert("Please select a bike");

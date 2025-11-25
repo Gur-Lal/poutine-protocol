@@ -12,6 +12,18 @@ interface PaymentModalProps {
   onPaymentComplete?: () => void;
 }
 
+interface PriceBreakdown {
+  basePrice: number;
+  perMinutePrice: number;
+  eBikeSurcharge: number;
+  isMonthlySubscription: boolean;
+  total: number;
+  dualRoleDiscount?: number;
+  tierDiscount?: number;
+  flexBalanceUsed?: number;
+  flexBalanceEarned?: number;
+}
+
 export default function PaymentModal({
   isOpen,
   tripId,
@@ -24,6 +36,8 @@ export default function PaymentModal({
   const [duration, setDuration] = useState<string>("0");
   const [pricingPlan, setPricingPlan] = useState<string>("regular");
   const [error, setError] = useState<string>("");
+  const [priceBreakdown, setPriceBreakdown] = useState<PriceBreakdown | null>(null);
+  const [checkoutUrl, setCheckoutUrl] = useState<string>("");
 
   useEffect(() => {
     if (isOpen && tripId) {
@@ -53,6 +67,8 @@ export default function PaymentModal({
       setAmount(data.amount);
       setDuration(data.durationMinutes);
       setPricingPlan(data.pricingPlan);
+      setPriceBreakdown(data.priceBreakdown || null);
+      setCheckoutUrl(data.checkoutUrl || "");
 
       // If monthly subscription, skip payment
       if (data.skipPayment) {
@@ -72,32 +88,17 @@ export default function PaymentModal({
     }
   };
 
-  const handlePayNow = async () => {
-    setLoading(true);
-    
-    try {
-      const response = await fetch("/api/createPaymentSession", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ tripId, email }),
-      });
-
-      const data = await response.json();
-
-      if (!data.ok || !data.checkoutUrl) {
-        throw new Error("Failed to get payment URL");
-      }
+  const handlePayNow = () => {
+    if (!checkoutUrl) {
+      setError("Payment URL not available");
+      return;
+    }
 
       // Redirect to Stripe Checkout
-      window.location.href = data.checkoutUrl;
-    } catch (err) {
-      console.error("Payment error:", err);
-      setError(err instanceof Error ? err.message : "Payment failed");
-      setLoading(false);
-    }
+      window.location.href = checkoutUrl;
   };
+
+  const hasDiscount = priceBreakdown && (priceBreakdown.dualRoleDiscount || priceBreakdown.tierDiscount);
 
   if (!isOpen) return null;
 
@@ -106,7 +107,7 @@ export default function PaymentModal({
       <div className="paymentModalBackdrop" onClick={onClose}></div>
       <div className="paymentModal">
         <FaXmark className="closeButton" onClick={onClose} />
-        
+
         <div className="paymentHeader">
           <FaCreditCard className="paymentIcon" />
           <h2>Trip Payment</h2>
@@ -128,7 +129,7 @@ export default function PaymentModal({
           <div className="paymentContent">
             <div className="tripSummary">
               <h3>Trip Summary</h3>
-              
+
               <div className="summaryRow">
                 <FaClock className="summaryIcon" />
                 <span>Duration:</span>
@@ -141,36 +142,86 @@ export default function PaymentModal({
                 <strong>{pricingPlan}</strong>
               </div>
 
-              <div className="totalRow">
-                <span>Total Amount:</span>
-                <strong className="totalAmount">${amount.toFixed(2)} CAD</strong>
-              </div>
+              {/* Price Breakdown */}
+              {priceBreakdown && !priceBreakdown.isMonthlySubscription && (
+                <div
+                  style={{
+                    marginTop: "20px",
+                    paddingTop: "15px",
+                    borderTop: "1px solid rgba(255,255,255,0.2)",
+                  }}
+                >
+                  <div className="summaryRow" style={{ fontSize: "14px", opacity: 0.9 }}>
+                    <span>Base Price:</span>
+                    <span>${priceBreakdown.basePrice.toFixed(2)}</span>
+                  </div>
+                  <div className="summaryRow" style={{ fontSize: "14px", opacity: 0.9 }}>
+                    <span>Per Minute ({duration} min):</span>
+                    <span>${priceBreakdown.perMinutePrice.toFixed(2)}</span>
+                  </div>
+                  {priceBreakdown.eBikeSurcharge > 0 && (
+                    <div className="summaryRow" style={{ fontSize: "14px", opacity: 0.9 }}>
+                      <span>E-Bike Surcharge:</span>
+                      <span>${priceBreakdown.eBikeSurcharge.toFixed(2)}</span>
+                    </div>
+                  )}
+
+                  {/* Show tier discount */}
+                  {priceBreakdown?.tierDiscount && priceBreakdown.tierDiscount > 0 && (
+                    <div className="summaryRow" style={{ fontSize: "14px", color: "#4ade80" }}>
+                      <span>Tier Discount ({((priceBreakdown.tierDiscount ?? 0) * 100).toFixed(0)}%):</span>
+                      <span>Included</span>
+                    </div>
+                  )}
+
+                  {/* Show dual-role discount */}
+                  {priceBreakdown?.dualRoleDiscount && priceBreakdown.dualRoleDiscount > 0 && (
+                    <div className="summaryRow" style={{ fontSize: "14px", color: "#4ade80" }}>
+                      <span>Dual-Role Discount ({((priceBreakdown.dualRoleDiscount ?? 0) * 100).toFixed(0)}%):</span>
+                      <span>Included</span>
+                    </div>
+                  )}
+
+                  {/* Show flex balance used */}
+                  {priceBreakdown?.flexBalanceUsed && priceBreakdown.flexBalanceUsed > 0 && (
+                    <div className="summaryRow" style={{ fontSize: "14px", color: "#4ade80" }}>
+                      <span>Flex Balance Applied:</span>
+                      <span>-${priceBreakdown.flexBalanceUsed.toFixed(2)}</span>
+                    </div>
+                  )}
+
+                  {/* Show flex balance earned */}
+                  {priceBreakdown?.flexBalanceEarned && priceBreakdown.flexBalanceEarned > 0 && (
+                    <div 
+                      className="summaryRow" 
+                      style={{ 
+                        fontSize: "14px", 
+                        color: "#4ade80",
+                        fontWeight: "bold"
+                      }}
+                    >
+                      <span>Flex Balance Earned:</span>
+                      <span>+${priceBreakdown.flexBalanceEarned.toFixed(2)}</span>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
-            {pricingPlan.toLowerCase() === "monthly" ? (
+            <div className="paymentAmount">
+              <span>Total Amount:</span>
+              <span className="amount">${amount.toFixed(2)}</span>
+            </div>
+
+            {priceBreakdown?.isMonthlySubscription ? (
               <div className="monthlyMessage">
-                <p>✓ No charge - Monthly subscription active</p>
-                <p className="subtext">This trip is included in your monthly plan</p>
+                ✓ Included in your monthly subscription
               </div>
             ) : (
-              <>
-                <div className="paymentInfo">
-                  <p>You&apos;ll be redirected to Stripe&apos;s secure checkout page</p>
-                </div>
-
-                <button 
-                  onClick={handlePayNow} 
-                  className="payButton"
-                  disabled={loading}
-                >
-                  {loading ? "Processing..." : `Pay $${amount.toFixed(2)} CAD`}
-                </button>
-              </>
+              <button onClick={handlePayNow} className="payButton" disabled={loading}>
+                {loading ? "Processing..." : "Pay Now"}
+              </button>
             )}
-
-            <button onClick={onClose} className="cancelButton">
-              Cancel
-            </button>
           </div>
         )}
       </div>

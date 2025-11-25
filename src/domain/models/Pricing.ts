@@ -30,7 +30,7 @@ export class RegularPricing implements PricingStrategy {
   }
 
   calculatePrice(trip: Trip): number {
-    const durationMinutes = trip.end.getTime() - trip.start.getTime();
+    const durationMinutes = (trip.end.getTime() - trip.start.getTime()) / (1000 * 60); // Convert to minutes
     return this.base + durationMinutes * this.perMinute;
   }
 }
@@ -47,7 +47,7 @@ export class EBikePricing implements PricingStrategy {
   }
 
   calculatePrice(trip: Trip): number {
-    const durationMinutes = trip.end.getTime() - trip.start.getTime();
+    const durationMinutes = (trip.end.getTime() - trip.start.getTime()) / (1000 * 60); // Convert to minutes
     return this.base + durationMinutes * this.perMinute + this.eBikeCharge;
   }
 }
